@@ -4,18 +4,18 @@ from datetime import datetime
 
 import numpy as np
 
-try:
-    import torch
-except ImportError as e:
-    raise RuntimeError(
-        "Torch is required by fenn. Install it yourself (GPU/CPU) or use 'pip install fenn[torch]'."
-    ) from e
-
 
 def set_seed(seed: int) -> None:
     """
     Sets the random seed for Python, NumPy, and PyTorch to ensure reproducibility.
     """
+    try:
+        import torch
+    except ImportError as e:
+        raise RuntimeError(
+            "Torch is required by fenn. Install it yourself (GPU/CPU) or use 'pip install fenn[torch]'."
+        ) from e
+
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
