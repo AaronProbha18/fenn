@@ -11,8 +11,8 @@ class BaseNode:
     def post(self,shared,prep_res,exec_res): pass
     def _exec(self,prep_res): return self.exec(prep_res)
     def _run(self,shared): p=self.prep(shared); e=self._exec(p); return self.post(shared,p,e)
-    def run(self,shared): 
-        if self.successors: warnings.warn("Node won't run successors. Use Flow.")  
+    def run(self,shared):
+        if self.successors: warnings.warn("Node won't run successors. Use Flow.")
         return self._run(shared)
     def __rshift__(self,other): return self.next(other)
     def __sub__(self,action):
@@ -61,14 +61,14 @@ class AsyncNode(Node):
     async def exec_async(self,prep_res): pass
     async def exec_fallback_async(self,prep_res,exc): raise exc
     async def post_async(self,shared,prep_res,exec_res): pass
-    async def _exec(self,prep_res): 
+    async def _exec(self,prep_res):
         for self.cur_retry in range(self.max_retries):
             try: return await self.exec_async(prep_res)
             except Exception as e:
                 if self.cur_retry==self.max_retries-1: return await self.exec_fallback_async(prep_res,e)
                 if self.wait>0: await asyncio.sleep(self.wait)
-    async def run_async(self,shared): 
-        if self.successors: warnings.warn("Node won't run successors. Use AsyncFlow.")  
+    async def run_async(self,shared):
+        if self.successors: warnings.warn("Node won't run successors. Use AsyncFlow.")
         return await self._run_async(shared)
     async def _run_async(self,shared): p=await self.prep_async(shared); e=await self._exec(p); return await self.post_async(shared,p,e)
     def _run(self,shared): raise RuntimeError("Use run_async.")
@@ -94,7 +94,7 @@ class AsyncBatchFlow(AsyncFlow,BatchFlow):
         return await self.post_async(shared,pr,None)
 
 class AsyncParallelBatchFlow(AsyncFlow,BatchFlow):
-    async def _run_async(self,shared): 
+    async def _run_async(self,shared):
         pr=await self.prep_async(shared) or []
         await asyncio.gather(*(self._orch_async(shared,{**self.params,**bp}) for bp in pr))
         return await self.post_async(shared,pr,None)

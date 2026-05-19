@@ -49,7 +49,7 @@ Install the fenn library using
 pip install fenn
 ```
 
-or 
+or
 
 ```bash
 uv pip install fenn
@@ -192,14 +192,14 @@ from fenn.nn.utils import Checkpoint
 
 @app.entrypoint
 def main(args):
-        
+
     # Define your data
     train_loader = DataLoader(train_dataset, batch_size=args["train"]["batch"], shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=args["test"]["batch"], shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=args["test"]["batch"], shuffle=False)
-    
+
     # Define your model
-    model = nn.Sequential( ... )     
+    model = nn.Sequential( ... )
     loss = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(),
                             lr=float(args["train"]["lr"]))
@@ -247,7 +247,7 @@ If you use **fenn** in your work or research, please cite the project as:
 
 ## Contributing
 
-Contributions are welcome! 
+Contributions are welcome!
 
 Interested in contributing? Join the community on [Discord](https://discord.com/invite/6v9xtJxvN7).
 
