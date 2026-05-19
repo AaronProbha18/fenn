@@ -12,8 +12,8 @@ The original licenses, copyright notices, and attribution requirements for such 
 - License: MIT
 - License text: `licenses/PocketFlow-LICENSE.txt`
 
-Copyright notice:
+### Cofone
 
-```text
-Copyright (c) Zachary Huang
-```
+- Source: https://github.com/LeonardoCofone/cofone
+- License: MIT
+- License text: `licenses/cofone-LICENSE.txt`
