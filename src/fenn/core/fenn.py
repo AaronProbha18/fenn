@@ -136,7 +136,7 @@ class Fenn:
         """
         self._config_file = config_file
 
-    def get_env_key(self, key:str) -> str:
+    def get_environ(self, key:str) -> str:
         return self._keystore.get_key(key)
 
     @property

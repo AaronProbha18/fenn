@@ -8,7 +8,9 @@ from fenn.notification.service import Service
 class Telegram(Service):
     """Telegram notification service using webhooks."""
 
-    def __init__(self, parse_mode: Literal["Markdown", "HTML"] | None = None):
+    def __init__(self,  bot_token:str,
+                        chat_id:str,
+                        parse_mode: Literal["Markdown", "HTML"] | None = None):
         """Initialize Telegram service.
 
         Args:
@@ -21,8 +23,8 @@ class Telegram(Service):
         super().__init__()
 
         self._parse_mode = parse_mode
-        self._telegram_api_url = f"https://api.telegram.org/bot{self._keystore.get_key('TELEGRAM_BOT_TOKEN')}/sendMessage"
-        self._chat_id = self._keystore.get_key("TELEGRAM_CHAT_ID")
+        self._telegram_api_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        self._chat_id = chat_id
 
     def send_notification(self, message: str) -> None:
         """Send notification to Telegram chat.

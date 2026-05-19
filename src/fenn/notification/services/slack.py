@@ -6,11 +6,11 @@ from fenn.notification.service import Service
 class Slack(Service):
     """Slack notification service using webhooks."""
 
-    def __init__(self):
+    def __init__(self, webhook_url: str):
         """Initialize Slack service."""
         super().__init__()
-        self._slack_webhook_url = self._keystore.get_key("SLACK_WEBHOOK_URL")
-
+        self._slack_webhook_url = webhook_url
+        
     def send_notification(self, message: str) -> None:
         """Send notification to Slack channel.
 

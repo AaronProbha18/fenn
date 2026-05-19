@@ -6,7 +6,10 @@ from fenn.notification.service import Service
 class Resend(Service):
     """Resend email notification service."""
 
-    def __init__(self, subject: str = "Notification from fenn"):
+    def __init__(self,  api_key:str,
+                        from_email:str,
+                        to_emails_raw:str,
+                        subject: str = "Notification from fenn"):
         """Initialize Resend service.
 
         Args:
@@ -17,9 +20,9 @@ class Resend(Service):
         """
         super().__init__()
 
-        self._api_key = self._keystore.get_key("RESEND_API_KEY")
-        self._from_email = self._keystore.get_key("RESEND_FROM_EMAIL")
-        self._to_emails_raw = self._keystore.get_key("RESEND_TO_EMAILS")
+        self._api_key = api_key
+        self._from_email = from_email
+        self._to_emails_raw = to_emails_raw
 
         self._to_emails = [email.strip() for email in self._to_emails_raw.split(",")]
 

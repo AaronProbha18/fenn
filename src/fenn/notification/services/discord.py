@@ -6,11 +6,11 @@ from fenn.notification.service import Service
 class Discord(Service):
     """Discord notification service using webhooks."""
 
-    def __init__(self):
+    def __init__(self, webhook_url: str):
         """Initialize Discord service."""
         super().__init__()
 
-        self._discord_webhook_url = self._keystore.get_key("DISCORD_WEBHOOK_URL")
+        self._discord_webhook_url = webhook_url
 
     def send_notification(self, message: str) -> None:
         """Send notification to Discord channel.
