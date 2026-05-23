@@ -5,11 +5,9 @@ flat profile layout, mirroring the AWS CLI's ``~/.aws/credentials``::
 
     [default]
     api_key = "fk_live_..."
-    host    = "https://api.fenn.dev"
 
     [work]
     api_key = "fk_live_..."
-    host    = "https://internal.fenn.example.com"
 
 API key resolution order (highest priority first):
 
@@ -87,7 +85,10 @@ def write_credentials(
     profile: str = DEFAULT_PROFILE,
     host: Optional[str] = None,
 ) -> Path:
-    """Persist ``api_key`` (and optionally ``host``) under ``[profile]``.
+    """Persist ``api_key`` under ``[profile]``.
+
+    ``host`` is retained for backward-compatible callers; the CLI uses the
+    fixed remote endpoint from :mod:`fenn.remote.client`.
 
     Existing profiles are preserved. The file is created with mode ``0o600``
     on POSIX; on Windows the umask is left to the OS (the file lives under

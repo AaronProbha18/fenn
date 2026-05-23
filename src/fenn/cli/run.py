@@ -1,13 +1,12 @@
-"""``fenn run`` — execute a Fenn project locally or on a remote host."""
+"""``fenn run`` — execute a Fenn project on the Fenn remote service."""
 
 from __future__ import annotations
 
 import argparse
-import datetime
 import sys
 import tempfile
 from pathlib import Path
-from typing import Iterable, Iterator, Optional
+from typing import Iterable, Optional
 
 from colorama import Fore, Style
 
@@ -27,21 +26,15 @@ def execute(args: argparse.Namespace) -> None:
     """Entrypoint wired from :func:`fenn.cli.build_parser`.
 
     Args:
-        args: Parsed arguments with attributes ``script``, ``host``,
-            ``api_key``, ``profile``, ``max_runtime``, ``detach``,
-            ``no_download``, ``include``, ``exclude``.
+        args: Parsed arguments with attributes ``script``, ``api_key``,
+            ``profile``, ``max_runtime``, ``detach``, ``no_download``,
+            ``include``, ``exclude``.
     """
     script_path = _resolve_script(args.script)
-
-    host = args.host
-    if host is None:
-        _run_local(script_path)
-        return
 
     try:
         _run_remote(
             script_path=script_path,
-            host=host,
             explicit_key=args.api_key,
             profile=args.profile,
             max_runtime=args.max_runtime,
@@ -105,7 +98,6 @@ def _run_local(script_path: Path) -> None:
 def _run_remote(
     *,
     script_path: Path,
-    host: str,
     explicit_key: Optional[str],
     profile: Optional[str],
     max_runtime: int,
@@ -115,16 +107,11 @@ def _run_remote(
     excludes: Iterable[str],
 ) -> None:
     from fenn.remote.artifacts import extract_artifacts
-    from fenn.remote.client import RemoteClient
+    from fenn.remote.client import DEFAULT_REMOTE_HOST, RemoteClient
     from fenn.remote.credentials import resolve_api_key
     from fenn.remote.workspace import detect_venv_spec, pack_workspace
 
     creds = resolve_api_key(explicit=explicit_key, profile=profile)
-    effective_host = host or creds.host
-    if not effective_host:
-        raise CredentialsError(
-            "No remote host configured. Pass --host or set it via `fenn auth login --host ...`."
-        )
 
     root = Path.cwd().resolve()
     include_paths = [Path(p) for p in includes]
@@ -151,11 +138,11 @@ def _run_remote(
         )
 
     try:
-        with RemoteClient(effective_host, creds.api_key) as client:
+        with RemoteClient(DEFAULT_REMOTE_HOST, creds.api_key) as client:
             print(
                 f"{Fore.CYAN}Submitting {pack.file_count} files "
                 f"({pack.uncompressed_bytes / 1024:,.1f} KB) to "
-                f"{Fore.LIGHTYELLOW_EX}{effective_host}{Style.RESET_ALL}",
+                f"{Fore.LIGHTYELLOW_EX}{DEFAULT_REMOTE_HOST}{Style.RESET_ALL}",
                 file=sys.stderr,
             )
             submission = client.submit_job(
@@ -176,7 +163,7 @@ def _run_remote(
             if detach:
                 print(
                     f"{Fore.CYAN}--detach set; not streaming. "
-                    f"Use `fenn run --host {effective_host}` then check this job id.{Style.RESET_ALL}",
+                    f"Save this job id to check later.{Style.RESET_ALL}",
                     file=sys.stderr,
                 )
                 return

@@ -25,13 +25,16 @@ from fenn.remote.exceptions import (
     RemoteError,
 )
 
+DEFAULT_REMOTE_HOST = "http://pyfenn.com:9090"
 DEFAULT_TIMEOUT = (10.0, 60.0)  # (connect, read) seconds for non-streaming calls
 
 
 class RemoteClient:
     """Synchronous HTTP client for the Fenn remote execution service."""
 
-    def __init__(self, host: str, api_key: str, *, session: Optional[requests.Session] = None) -> None:
+    def __init__(
+        self, host: str, api_key: str, *, session: Optional[requests.Session] = None
+    ) -> None:
         self.host = host.rstrip("/")
         self.api_key = api_key
         self._session = session or requests.Session()

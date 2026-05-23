@@ -1,4 +1,4 @@
-"""Local execution branch for ``fenn run`` (used when no ``--host`` is set).
+"""Local execution helper for running a Fenn script on this machine.
 
 The default path mirrors ``python main.py``. If the entry script uses explicit
 relative imports, we execute it as a module so imports such as

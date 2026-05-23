@@ -57,27 +57,19 @@ def build_parser() -> argparse.ArgumentParser:
     p_dash.add_argument(
         "--port", type=int, default=5000, help="Port to bind (default: 5000)"
     )
-    p_dash.add_argument(
-        "--host", default="127.0.0.1", help="Host to bind (default: 127.0.0.1)"
-    )
     p_dash.add_argument("--debug", action="store_true", help="Run Flask in debug mode")
     p_dash.set_defaults(func=dashboard.execute)
 
     # ========= RUN =========
     p_run = subparsers.add_parser(
         "run",
-        help="Run a Fenn project locally or on a remote host",
+        help="Run a Fenn project on the Fenn remote service",
     )
     p_run.add_argument(
         "script",
         nargs="?",
         default=None,
         help="Path to the entrypoint script (default: main.py)",
-    )
-    p_run.add_argument(
-        "--host",
-        default=None,
-        help="Remote host URL (e.g. https://api.fenn.dev). If omitted, runs locally.",
     )
     p_run.add_argument(
         "--api-key",
@@ -128,8 +120,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_login = auth_subparsers.add_parser(
         "login", help="Save an API key for a profile"
     )
-    p_login.add_argument("--profile", default=None, help="Profile name (default: 'default')")
-    p_login.add_argument("--host", default=None, help="Default host for this profile")
+    p_login.add_argument(
+        "--profile", default=None, help="Profile name (default: 'default')"
+    )
     p_login.add_argument(
         "--api-key",
         default=None,
@@ -140,13 +133,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_status = auth_subparsers.add_parser(
         "status", help="Show the currently configured profile and credit balance"
     )
-    p_status.add_argument("--profile", default=None, help="Profile name (default: 'default')")
+    p_status.add_argument(
+        "--profile", default=None, help="Profile name (default: 'default')"
+    )
     p_status.set_defaults(func=auth.execute)
 
     p_logout = auth_subparsers.add_parser(
         "logout", help="Remove a profile from the credentials file"
     )
-    p_logout.add_argument("--profile", default=None, help="Profile name (default: 'default')")
+    p_logout.add_argument(
+        "--profile", default=None, help="Profile name (default: 'default')"
+    )
     p_logout.set_defaults(func=auth.execute)
 
     return parser

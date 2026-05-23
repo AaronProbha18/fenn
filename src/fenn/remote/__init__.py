@@ -1,11 +1,9 @@
 """Client-side remote execution helpers for the Fenn premium service.
 
-This package is imported only when ``fenn run --host ...`` or ``fenn auth ...``
-is invoked. Local execution (``fenn run main.py`` with no ``--host``) does not
-touch any of these modules.
+This package is imported when ``fenn run`` or ``fenn auth`` is invoked.
 """
 
-from fenn.remote.client import RemoteClient
+from fenn.remote.client import DEFAULT_REMOTE_HOST, RemoteClient
 from fenn.remote.credentials import (
     DEFAULT_PROFILE,
     Credentials,
@@ -24,6 +22,7 @@ from fenn.remote.workspace import pack_workspace
 
 __all__ = [
     "RemoteClient",
+    "DEFAULT_REMOTE_HOST",
     "Credentials",
     "CredentialsError",
     "DEFAULT_PROFILE",

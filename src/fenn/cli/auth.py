@@ -8,6 +8,7 @@ import sys
 
 from colorama import Fore, Style
 
+from fenn.remote.client import DEFAULT_REMOTE_HOST
 from fenn.remote.credentials import (
     DEFAULT_PROFILE,
     delete_profile,
@@ -35,13 +36,15 @@ def execute(args: argparse.Namespace) -> None:
     elif sub == "logout":
         _logout(args)
     else:
-        print(f"{Fore.RED}Unknown auth subcommand: {sub}{Style.RESET_ALL}", file=sys.stderr)
+        print(
+            f"{Fore.RED}Unknown auth subcommand: {sub}{Style.RESET_ALL}",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
 
 def _login(args: argparse.Namespace) -> None:
     profile = args.profile or DEFAULT_PROFILE
-    host = args.host
 
     api_key = args.api_key
     if not api_key:
@@ -56,7 +59,7 @@ def _login(args: argparse.Namespace) -> None:
         print(f"{Fore.RED}No API key provided.{Style.RESET_ALL}", file=sys.stderr)
         sys.exit(1)
 
-    path = write_credentials(api_key, profile=profile, host=host)
+    path = write_credentials(api_key, profile=profile)
     print(
         f"{Fore.GREEN}Saved credentials to "
         f"{Fore.LIGHTYELLOW_EX}{path}{Fore.GREEN} (profile: {profile}).{Style.RESET_ALL}"
@@ -73,28 +76,35 @@ def _status(args: argparse.Namespace) -> None:
         )
         sys.exit(1)
 
-    print(f"{Fore.CYAN}profile : {Fore.LIGHTYELLOW_EX}{creds.profile}{Style.RESET_ALL}")
-    print(f"{Fore.CYAN}api_key : {Fore.LIGHTYELLOW_EX}{mask_key(creds.api_key)}{Style.RESET_ALL}")
-    if creds.host:
-        print(f"{Fore.CYAN}host    : {Fore.LIGHTYELLOW_EX}{creds.host}{Style.RESET_ALL}")
+    print(
+        f"{Fore.CYAN}profile : "
+        f"{Fore.LIGHTYELLOW_EX}{creds.profile}{Style.RESET_ALL}"
+    )
+    print(
+        f"{Fore.CYAN}api_key : "
+        f"{Fore.LIGHTYELLOW_EX}{mask_key(creds.api_key)}{Style.RESET_ALL}"
+    )
+    print(
+        f"{Fore.CYAN}host    : "
+        f"{Fore.LIGHTYELLOW_EX}{DEFAULT_REMOTE_HOST}{Style.RESET_ALL}"
+    )
 
-    if creds.host:
-        try:
-            from fenn.remote.client import RemoteClient
+    try:
+        from fenn.remote.client import RemoteClient
 
-            with RemoteClient(creds.host, creds.api_key) as client:
-                me = client.me()
-            credits_remaining = me.get("credits")
-            plan = me.get("plan")
-            print(
-                f"{Fore.GREEN}credits : {Fore.LIGHTYELLOW_EX}{credits_remaining}"
-                f"{Fore.GREEN}  plan: {plan}{Style.RESET_ALL}"
-            )
-        except RemoteError as exc:
-            print(
-                f"{Fore.RED}Could not reach host: {exc}{Style.RESET_ALL}",
-                file=sys.stderr,
-            )
+        with RemoteClient(DEFAULT_REMOTE_HOST, creds.api_key) as client:
+            me = client.me()
+        credits_remaining = me.get("credits")
+        plan = me.get("plan")
+        print(
+            f"{Fore.GREEN}credits : {Fore.LIGHTYELLOW_EX}{credits_remaining}"
+            f"{Fore.GREEN}  plan: {plan}{Style.RESET_ALL}"
+        )
+    except RemoteError as exc:
+        print(
+            f"{Fore.RED}Could not reach host: {exc}{Style.RESET_ALL}",
+            file=sys.stderr,
+        )
 
 
 def _logout(args: argparse.Namespace) -> None:
