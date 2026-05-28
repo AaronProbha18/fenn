@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Any, Dict
 
 import yaml
@@ -15,11 +16,11 @@ class Parser:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self) -> None:
+    def __init__(self, config_file: str | Path = "fenn.yaml") -> None:
         if hasattr(self, "_initialized"):
             return
 
-        self._config_file: str = "fenn.yaml"
+        self._config_file: Path = Path(config_file)
         self._args: Dict[str, Any] = {}
 
         self._keystore: KeyStore = KeyStore()
@@ -48,7 +49,7 @@ class Parser:
         # File exists → load YAML
         with open(self._config_file) as f:
             self._args = yaml.safe_load(f)
-            self._args["project"] = self._config_file.split("/")[-1].split(".")[0]
+            self._args["project"] = self._config_file.stem
 
         return self._args
 
@@ -64,7 +65,7 @@ class Parser:
 
     @config_file.setter
     def config_file(self, config_file: str) -> None:
-        self._config_file = config_file
+        self._config_file: Path = Path(config_file)
 
     @property
     def args(self) -> Dict[str, Any]:

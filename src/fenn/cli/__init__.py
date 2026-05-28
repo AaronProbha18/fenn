@@ -5,6 +5,7 @@ import fenn.cli.dashboard as dashboard
 import fenn.cli.list as list
 import fenn.cli.pull as pull
 import fenn.cli.run as run
+import fenn.cli.grid as grid
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -145,6 +146,21 @@ def build_parser() -> argparse.ArgumentParser:
         "--profile", default=None, help="Profile name (default: 'default')"
     )
     p_logout.set_defaults(func=auth.execute)
+    
+    # ========= GRID =========
+    
+    p_grid = subparsers.add_parser(
+        "grid",
+        help="Run a Fenn project several times, with all possible grid hyperparams",
+    )
+
+    p_grid.add_argument(
+        "main",
+        nargs="?",
+        help="Name of main.py file (default 'main.py')",
+    )
+
+    p_grid.set_defaults(func=grid.execute)
 
     return parser
 
