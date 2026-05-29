@@ -153,9 +153,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     p_grid.add_argument(
-        "main",
+        "path",
         nargs="?",
-        help="Name of main.py file (default 'main.py')",
+        help="Target directory (default: current directory)",
     )
 
     p_grid.set_defaults(func=grid.execute)

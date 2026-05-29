@@ -23,7 +23,7 @@ def execute(args: argparse.Namespace) -> None:
             - path: Target directory (default: current directory)
     """
 
-    main_path: Path = Path(args.main).resolve() if args.main else Path.cwd() / "main.py"
+    main_path: Path = Path(args.path).resolve() if args.path else Path.cwd() / "main.py"
     yaml_path: Path = main_path.parent / "fenn.yaml"
     yaml_copy: Path = main_path.parent / "fenn_copy.yaml"
     try:
@@ -43,7 +43,7 @@ def execute(args: argparse.Namespace) -> None:
 
 def _build_variants(raw_grid: dict[str, list | int]) -> list[dict[str, int]]:
     keys = raw_grid.keys()
-    values = [v if isinstance(v, list) else [v] for v in raw_grid.values()]
+    values: list[list | list[int]] = [v if isinstance(v, list) else [v] for v in raw_grid.values()]
     return [dict(zip(keys, combo)) for combo in product(*values)]
 
 def _parse_grid(yaml_path: Path) -> list[dict[str, int]]:
@@ -62,7 +62,7 @@ def _execute_fenn(hyperparameter: dict[str: int],
         train_data.update({key:value})
     with open(yaml_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
-    subprocess.run(["python3", main_path])
+    subprocess.run(["python3", main_path], cwd=main_path.parent)
 
 
 class TemplateError(Exception):
