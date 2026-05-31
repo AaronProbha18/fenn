@@ -37,7 +37,7 @@ def execute(args: argparse.Namespace) -> None:
             script_path=script_path,
             explicit_key=args.api_key,
             profile=args.profile,
-            max_runtime=args.max_runtime,
+            max_runtime=args.max_runtime * 60,
             detach=args.detach,
             download=not args.no_download,
             includes=args.include or (),
