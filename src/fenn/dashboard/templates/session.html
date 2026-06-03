@@ -96,39 +96,6 @@
 
 <!-- Log entries -->
 <div class="card">
-  <div class="log-toolbar">
-    <!-- Level filters -->
-    <div class="filter-group">
-      <button class="filter-btn active-all" data-filter-level="all">All levels</button>
-      <button class="filter-btn" data-filter-level="info">Info</button>
-      <button class="filter-btn" data-filter-level="warning">Warning</button>
-      <button class="filter-btn" data-filter-level="exception">Exception</button>
-    </div>
-
-    <!-- Kind filters -->
-    <div class="filter-group">
-      <button class="filter-btn active-all" data-filter-kind="all">All kinds</button>
-      <button class="filter-btn" data-filter-kind="system">System</button>
-      <button class="filter-btn" data-filter-kind="user">User</button>
-      <button class="filter-btn" data-filter-kind="print">Print</button>
-    </div>
-
-    <!-- Search -->
-    <div class="search-wrap" style="flex:1; max-width:320px;">
-      <span class="search-icon">⌕</span>
-      <input
-        id="log-search"
-        type="search"
-        class="search-input"
-        style="width:100%;"
-        placeholder="Search entries… (⌘K)"
-        autocomplete="off"
-      />
-    </div>
-
-    <span id="log-visible-count" class="log-count"></span>
-  </div>
-
   <div class="log-entries">
     {% if entries %}
       {% for entry in entries %}

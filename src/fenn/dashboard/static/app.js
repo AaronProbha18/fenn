@@ -124,6 +124,45 @@
     });
   }
 
+  // ── Logout confirmation dialog ─────────────────────────────────────────── //
+
+  const logoutForm    = document.getElementById("logout-form");
+  const logoutDialog  = document.getElementById("logout-dialog");
+  const logoutCancel  = document.getElementById("logout-cancel");
+  const logoutConfirm = document.getElementById("logout-confirm");
+
+  if (logoutForm && logoutDialog) {
+    const fallbackPrompt =
+      "Disconnect? You'll need to paste your dashboard token again next time. " +
+      "If you just want to stop, close this tab instead.";
+
+    logoutForm.addEventListener("submit", (e) => {
+      // If the user already confirmed via the dialog, the form has been flagged
+      // and we let the native submit proceed.
+      if (logoutForm.dataset.confirmed === "true") return;
+      e.preventDefault();
+      if (typeof logoutDialog.showModal === "function") {
+        logoutDialog.showModal();
+      } else if (window.confirm(fallbackPrompt)) {
+        logoutForm.dataset.confirmed = "true";
+        logoutForm.submit();
+      }
+    });
+
+    logoutCancel?.addEventListener("click", () => logoutDialog.close());
+
+    logoutConfirm?.addEventListener("click", () => {
+      logoutForm.dataset.confirmed = "true";
+      logoutDialog.close();
+      logoutForm.submit();
+    });
+
+    // Clicking the backdrop (outside the dialog content) also cancels.
+    logoutDialog.addEventListener("click", (e) => {
+      if (e.target === logoutDialog) logoutDialog.close();
+    });
+  }
+
   // ── Collapsible sections ───────────────────────────────────────────────── //
 
   document.querySelectorAll(".collapsible-btn").forEach((btn) => {

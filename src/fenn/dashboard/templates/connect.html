@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Connect — Fenn Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="connect-body">
+
+  <main class="connect-shell">
+    <div class="connect-card">
+      <img src="{{ url_for('static', filename='images/mascotte.svg') }}"
+           alt=""
+           class="connect-mascotte">
+      <h1 class="connect-title">
+        <span class="logo-bracket">[</span>fenn<span class="logo-bracket">]</span>
+        <span class="connect-title-sub">/dashboard</span>
+      </h1>
+      <p class="connect-lead">
+        Paste a dashboard token to view your logs. Generate one at
+        <a href="https://pyfenn.com/dashboard/dashboard-tokens"
+           target="_blank"
+           rel="noopener noreferrer">pyfenn.com/dashboard/dashboard-tokens</a>.
+      </p>
+
+      {% if error_message %}
+      <div class="connect-error">{{ error_message }}</div>
+      {% endif %}
+      {% if info_message %}
+      <div class="connect-info">{{ info_message }}</div>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('connect') }}" class="connect-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="token" class="connect-label">Dashboard token</label>
+        <input type="password"
+               name="token"
+               id="token"
+               autocomplete="off"
+               spellcheck="false"
+               maxlength="64"
+               pattern="fdt_[A-Za-z0-9_\-]{43}"
+               placeholder="fdt_…"
+               required>
+        <button type="submit" class="connect-submit">Connect</button>
+      </form>
+
+      <p class="connect-foot">
+        Don't have an account?
+        <a href="https://pyfenn.com/login" target="_blank" rel="noopener noreferrer">Sign in at pyfenn.com</a>.
+      </p>
+    </div>
+  </main>
+
+</body>
+</html>

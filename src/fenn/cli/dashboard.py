@@ -1,5 +1,8 @@
 """fenn dashboard — launch the Fenn log-browser web UI."""
 
+# Must remain 127.0.0.1: the dashboard serves the user's own logs without any
+# network-layer auth, and the in-process auth gate assumes a local-only socket.
+# Do NOT bind to 0.0.0.0 or a non-loopback address.
 DASHBOARD_HOST = "127.0.0.1"
 
 

@@ -4,7 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Fenn Dashboard{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 <div class="layout">
@@ -12,10 +17,12 @@
   <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
   <aside class="sidebar">
     <div class="sidebar-header">
-      <div class="logo-icon">⚗</div>
+      <img src="{{ url_for('static', filename='images/icon.png') }}"
+           alt="fenn"
+           class="logo-img">
       <div class="logo-text">
-        <span class="logo-name">fenn</span>
-        <span class="logo-sub">dashboard</span>
+        <span class="logo-name"><span class="logo-bracket">[</span>fenn<span class="logo-bracket">]</span></span>
+        <span class="logo-sub">/dashboard</span>
       </div>
     </div>
 
@@ -53,6 +60,32 @@
       <div class="breadcrumb">
         {% block breadcrumb %}{% endblock %}
       </div>
+      {% if current_user %}
+      <div class="topbar-user">
+        <span class="topbar-user-email">{{ current_user.email }}</span>
+        <form method="POST"
+              action="{{ url_for('logout') }}"
+              class="topbar-logout"
+              id="logout-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn-ghost" id="logout-trigger">Disconnect</button>
+        </form>
+      </div>
+
+      <dialog id="logout-dialog"
+              class="confirm-dialog"
+              aria-labelledby="logout-dialog-title">
+        <h2 class="confirm-title" id="logout-dialog-title">Disconnect?</h2>
+        <p class="confirm-body">
+          You'll need to paste your dashboard token again next launch.
+          To just stop using the dashboard, close this tab instead.
+        </p>
+        <div class="confirm-actions">
+          <button type="button" class="btn-ghost" id="logout-cancel">Cancel</button>
+          <button type="button" class="btn-danger" id="logout-confirm">Disconnect</button>
+        </div>
+      </dialog>
+      {% endif %}
     </header>
 
     <div class="page">
@@ -62,6 +95,6 @@
   </div>
 </div>
 
-<script src="/static/app.js"></script>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

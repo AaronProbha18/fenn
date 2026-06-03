@@ -2,14 +2,31 @@
 
 import argparse
 import logging
+import secrets
+from datetime import timedelta
 from pathlib import Path
 from typing import Optional
 
-from flask import Flask, abort, jsonify, render_template, request
+from flask import (
+    Flask,
+    abort,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
+from flask_wtf.csrf import CSRFError, CSRFProtect
 
 try:
+    from fenn.dashboard import auth as dashboard_auth
+    from fenn.dashboard import token_store
     from fenn.dashboard.scanner import FennScanner
 except ImportError:  # standalone: python app.py
+    import auth as dashboard_auth  # type: ignore[no-redef]
+    import token_store  # type: ignore[no-redef]
     from scanner import FennScanner  # type: ignore[no-redef]
 
 _HERE = Path(__file__).parent
@@ -20,7 +37,102 @@ app = Flask(
     static_folder=str(_HERE / "static"),
 )
 
+# Fresh per-launch signing key — sessions don't survive a restart, by design.
+# We don't need cross-launch persistence and rotating the key auto-invalidates
+# every cookie that survived the previous process.
+app.secret_key = secrets.token_bytes(32)
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=False,  # localhost-only — HTTPS not in scope
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
+    WTF_CSRF_TIME_LIMIT=None,
+)
+
+# CSRF on /connect and /logout. Even though we listen on 127.0.0.1, any tab in
+# the user's browser could POST cross-origin without it.
+csrf = CSRFProtect(app)
+
 scanner = FennScanner()
+
+
+@app.context_processor
+def _inject_current_user():
+    return {"current_user": dashboard_auth.current_user()}
+
+
+# Endpoints that must remain reachable without a session.
+_PUBLIC_ENDPOINTS = frozenset({"connect", "logout", "static"})
+
+_STORED_TOKEN_EXPIRED_MESSAGE = (
+    "Your saved dashboard token expired or was revoked. "
+    "Paste a fresh one to continue."
+)
+_STORED_TOKEN_OFFLINE_MESSAGE = (
+    "Could not reach https://pyfenn.com to verify your saved token. "
+    "Using cached identity — the dashboard will revalidate next launch."
+)
+
+
+def _try_stored_session():
+    """Re-establish a Flask session from ``~/.fenn/dashboard_session.json``.
+
+    Returns ``None`` if the caller should proceed normally, or a Flask
+    response if the caller should short-circuit (e.g. redirect to connect
+    when the saved token has been revoked server-side).
+    """
+    stored = token_store.load()
+    if stored is None:
+        return None
+
+    try:
+        user = dashboard_auth.validate_token(stored["token"])
+    except dashboard_auth.InvalidTokenError:
+        # Server explicitly rejected the saved token — drop it and force a
+        # fresh paste. Flash a message so the user understands why.
+        token_store.clear()
+        session.clear()
+        session["pending_info"] = _STORED_TOKEN_EXPIRED_MESSAGE
+        return redirect(url_for("connect"))
+    except dashboard_auth.AuthUnreachableError:
+        # Offline or pyfenn.com is down. Fall back to the cached identity so
+        # the user can still browse their local logs.
+        user = stored["user"]
+    else:
+        # Server may have updated email; refresh the cached copy.
+        token_store.save(stored["token"], user)
+
+    session.clear()
+    session["user"] = user
+    session.permanent = True
+    # current_user() caches on g; invalidate so the rest of this request
+    # sees the freshly-loaded identity instead of the prior None.
+    g.pop("current_user", None)
+    return None
+
+
+@app.before_request
+def _require_login():
+    endpoint = request.endpoint
+    if endpoint in _PUBLIC_ENDPOINTS:
+        return None
+    if dashboard_auth.current_user() is not None:
+        return None
+    response = _try_stored_session()
+    if response is not None:
+        return response
+    if dashboard_auth.current_user() is not None:
+        return None
+    return redirect(url_for("connect"))
+
+
+@app.errorhandler(CSRFError)
+def _csrf_failed(e):
+    return render_template(
+        "connect.html",
+        error_message="Form expired. Please try again.",
+        info_message=None,
+    ), 400
 
 
 # --------------------------------------------------------------------------- #
@@ -58,8 +170,8 @@ def project(project_name: str):
     return render_template("project.html", **scanner.get_project(project_name))
 
 
-@app.route("/session/<project_name>/<session_id>")
-def session(project_name: str, session_id: str):
+@app.route("/session/<project_name>/<session_id>", endpoint="session")
+def session_view(project_name: str, session_id: str):
     data = scanner.get_session(project_name, session_id)
     if data is None:
         abort(404)
@@ -153,6 +265,67 @@ def api_sessions():
 @app.errorhandler(404)
 def not_found(e):
     return render_template("404.html", **scanner.get_overview()), 404
+
+
+# --------------------------------------------------------------------------- #
+# Auth routes
+# --------------------------------------------------------------------------- #
+
+_NETWORK_ERROR_MESSAGE = (
+    "Could not reach https://pyfenn.com. Verify your internet connection "
+    "or open an issue at https://github.com/pyfenn/fenn/issues."
+)
+_INVALID_TOKEN_MESSAGE = "Invalid or expired token."
+
+
+@app.route("/connect", methods=["GET", "POST"])
+def connect():
+    # Already signed in → bounce to home.
+    if dashboard_auth.current_user() is not None:
+        return redirect(url_for("index"))
+
+    # One-shot info message set by the auth gate (e.g. "your saved token
+    # expired"). Pop so it doesn't persist past this render.
+    info_message = session.pop("pending_info", None)
+
+    if request.method == "GET":
+        return render_template(
+            "connect.html", error_message=None, info_message=info_message
+        )
+
+    token = request.form.get("token", "")
+    try:
+        user = dashboard_auth.validate_token(token)
+    except dashboard_auth.InvalidTokenError:
+        return render_template(
+            "connect.html",
+            error_message=_INVALID_TOKEN_MESSAGE,
+            info_message=None,
+        ), 401
+    except dashboard_auth.AuthUnreachableError:
+        return render_template(
+            "connect.html",
+            error_message=_NETWORK_ERROR_MESSAGE,
+            info_message=None,
+        ), 503
+
+    # Session fixation defence: rotate the session ID before binding the
+    # user, matching the pattern simple-server uses on OAuth callback.
+    session.clear()
+    session["user"] = user
+    session.permanent = True
+    # Persist so the next dashboard launch skips the paste step.
+    token_store.save(token.strip(), user)
+    return redirect(url_for("index"))
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    session.clear()
+    # Also drop the disk cache — otherwise the next request would
+    # silently re-establish the same session via _try_stored_session().
+    token_store.clear()
+    return redirect(url_for("connect"))
 
 
 # --------------------------------------------------------------------------- #

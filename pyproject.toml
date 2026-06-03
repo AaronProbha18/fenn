@@ -40,6 +40,7 @@ dependencies = [
   "resend>=2.0.0",
   "rich~=13.0.0",
   "flask~=3.0.2",
+  "flask-wtf>=1.2.0",
   "python-dotenv>=1.2.2",
 ]
 
@@ -97,7 +98,7 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-"fenn.dashboard" = ["templates/*.html", "static/*"]
+"fenn.dashboard" = ["templates/*.html", "static/*", "static/images/*"]
 
 [project.scripts]
 fenn = "fenn.cli:main"
