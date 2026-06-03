@@ -819,3 +819,52 @@ mark, .log-msg .hl, .log-msg .highlight {
   .topbar { padding: 0 16px; }
   .topbar-user-email { display: none; }
 }
+/* ── Dark Mode ──────────────────────────────────────────── */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:           #0d1117;
+    --surface:      #161b22;
+    --surface-2:    #1c2128;
+    --surface-3:    #21262d;
+    --border:       #30363d;
+    --border-soft:  #21262d;
+
+    --sidebar-bg:       #161b22;
+    --sidebar-border:   #30363d;
+    --sidebar-text:     #e6edf3;
+    --sidebar-muted:    #8b949e;
+    --sidebar-dim:      #6e7681;
+    --sidebar-hover:    #1c2128;
+    --sidebar-active:   rgba(124, 58, 237, 0.15);
+
+    --topbar-bg:     #161b22;
+    --topbar-border: #30363d;
+
+    --text:          #e6edf3;
+    --text-muted:    #8b949e;
+    --text-dim:      #6e7681;
+
+    --info-bg:      rgba(9, 105, 218, 0.15);
+    --warning-bg:   rgba(154, 103, 0, 0.15);
+    --error-bg:     rgba(207, 34, 46, 0.15);
+    --success-bg:   rgba(26, 127, 55, 0.15);
+    --print-bg:     rgba(5, 80, 174, 0.12);
+
+    --shadow:    0 1px 3px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+    --shadow-card: 0 0 0 1px rgba(0,0,0,.3), 0 2px 8px rgba(0,0,0,.2);
+  }
+
+  .log-entries {
+    background: #0d1117;
+  }
+
+  .log-entry:hover {
+    background: #1c2128;
+  }
+
+  .search-input:focus {
+    background: #0d1117;
+  }
+}
