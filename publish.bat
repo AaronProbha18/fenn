@@ -10,7 +10,7 @@ cd /d "%ROOT_DIR%" || exit /b 1
 
 REM Clean previous build artefacts
 if exist dist rmdir /s /q dist
-if exist src\fenn.egg-info rmdir /s /q src\fenn.egg-info
+if exist fenn\fenn.egg-info rmdir /s /q fenn\fenn.egg-info
 
 REM python -m pip install build
 python -m build || exit /b 1

@@ -7,7 +7,7 @@ cd "$ROOT_DIR"
 
 # Clean previous build artefacts
 rm -rf dist
-rm -rf src/fenn.egg-info
+rm -rf fenn/fenn.egg-info
 
 # python -m pip install build
 python -m build

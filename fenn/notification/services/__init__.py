@@ -1,5 +1,5 @@
 from .discord import Discord
-from .resend import Resend
+from .redeliver import Resend
 from .slack import Slack
 from .telegram import Telegram
 

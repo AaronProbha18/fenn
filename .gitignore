@@ -3,7 +3,6 @@ build/
 dist/
 *.egg-info/
 .env
-/tests/
 diff.txt
 venv/
 logger/

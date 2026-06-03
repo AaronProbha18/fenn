@@ -21,7 +21,7 @@ def test_run_parser_defaults():
     assert args.profile is None
     assert args.detach is False
     assert args.no_download is False
-    assert args.max_runtime == 3600
+    assert args.max_runtime == 10
 
 
 def test_run_parser_collects_includes_and_excludes():

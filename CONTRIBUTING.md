@@ -4,7 +4,7 @@ Welcome to the **fenn** project! This guide explains how to prepare your changes
 
 ## Initial Checks
 
-Before you start coding, read the main `README.md` and the [documentation](https://fennpy.org/) to understand the project goals, basic usage, and current roadmap. If you are unsure what to work on or want feedback on an idea, start a conversation on the project’s Discord server or in the GitHub discussion thread linked from the README so the maintainers can help you scope a useful contribution.
+Before you start coding, read the main `README.md` and the [documentation](https://pyfenn.org/) to understand the project goals, basic usage, and current roadmap. If you are unsure what to work on or want feedback on an idea, start a conversation on the project’s Discord server or in the GitHub discussion thread linked from the README so the maintainers can help you scope a useful contribution.
 
 Whenever possible, prefer small, focused changes over very large pull requests.
 If you plan a bigger feature or refactor, discuss it first to confirm that it fits the project direction.

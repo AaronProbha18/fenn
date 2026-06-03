@@ -49,15 +49,18 @@ def test_cartesian_product() -> None:
 
 def test_template_error(monkeypatch) -> None:
     monkeypatch.setattr(Parser, "_instance", None)
-    yaml: Path = Path("src/tests/templates/default/fenn.yaml")
+    yaml: Path = Path("tests/unit/mock/templates/default/fenn.yaml")
     with pytest.raises(TemplateError):
         _parse_grid(yaml)
 
 
-def test_execution(monkeypatch) -> None:
+def test_execute(monkeypatch) -> None:
     monkeypatch.setattr(Parser, "_instance", None)
-    yaml: Path = Path("src/tests/templates/with_grid/fenn.yaml")
-    main: Path = Path("src/tests/templates/with_grid/main.py")
-    hyperparams: list[dict[str, int]] = _parse_grid(yaml)
-    for hyperparameter in hyperparams:
-        _execute_fenn(hyperparameter=hyperparameter, main_path=main, yaml_path=yaml)
+    from fenn.cli.grid import execute
+
+    parser: ArgumentParser = build_parser()
+    args: Namespace = parser.parse_args(
+        ["grid", "tests/unit/mock/templates/with_grid/main.py"]
+    )
+    execute(args=args)
+    assert not Path("tests/unit/mock/templates/with_grid/fenn_copy.yaml").exists()

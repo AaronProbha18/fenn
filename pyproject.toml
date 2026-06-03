@@ -95,7 +95,7 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["."]
 
 [tool.setuptools.package-data]
 "fenn.dashboard" = ["templates/*.html", "static/*", "static/images/*"]
@@ -110,15 +110,15 @@ fenn = "fenn.cli:main"
 "Bug Tracker" = "https://github.com/blkdmr/fenn/issues"
 
 [tool.pytest.ini_options]
-testpaths = ["src/tests"]
+testpaths = ["tests"]
 norecursedirs = ["tests", "venv", ".venv", "__pycache__", "*.egg"]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "Q"]
-exclude = ["src/fenn/experimental/*"]
+exclude = ["fenn/experimental/*"]
 
 [tool.ruff]
-include = ["pyproject.toml", "src/**/*.py"]
+include = ["pyproject.toml", "fenn/**/*.py"]
 
 [tool.typos.files]
 extend-exclude = [

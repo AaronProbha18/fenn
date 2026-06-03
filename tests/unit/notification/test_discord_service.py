@@ -1,3 +1,5 @@
+import os
+
 import pytest
 import requests
 
@@ -25,7 +27,7 @@ def send_message_to_discord(mock_discord_response):
     def _send(url, message, status_code, response_body):
         mock_result = mock_discord_response(url, status_code, response_body)
 
-        Discord().send_notification(message)
+        Discord(url).send_notification(message)
 
         return mock_result
 
@@ -37,7 +39,9 @@ class TestDiscord:
         monkeypatch.delenv("DISCORD_WEBHOOK_URL", raising=False)
 
         with pytest.raises(KeyError):
-            Discord()
+            Discord(
+                os.environ["DISCORD_WEBHOOK_URL"],
+            )
 
     def test_send_notification_success(self, send_message_to_discord, message):
         request = send_message_to_discord(

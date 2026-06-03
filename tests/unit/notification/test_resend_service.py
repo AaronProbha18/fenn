@@ -1,8 +1,9 @@
+import os
 from unittest.mock import patch
 
 import pytest
 
-from fenn.notification.services.resend import Resend
+from fenn.notification.services.redeliver import Resend
 
 
 @pytest.fixture(scope="class")
@@ -34,7 +35,11 @@ class TestResend:
         monkeypatch.setenv("RESEND_TO_EMAILS", "recipient@example.com")
 
         with pytest.raises(KeyError):
-            Resend()
+            Resend(
+                api_key=os.environ["RESEND_API_KEY"],
+                from_email=os.environ["RESEND_FROM_EMAIL"],
+                to_emails_raw=os.environ["RESEND_TO_EMAILS"],
+            )
 
     def test_resend_service_setup_error_missing_from_email(self, monkeypatch):
         """Test that Resend raises KeyError when RESEND_FROM_EMAIL is missing."""
@@ -43,7 +48,11 @@ class TestResend:
         monkeypatch.setenv("RESEND_TO_EMAILS", "recipient@example.com")
 
         with pytest.raises(KeyError):
-            Resend()
+            Resend(
+                api_key=os.environ["RESEND_API_KEY"],
+                from_email=os.environ["RESEND_FROM_EMAIL"],
+                to_emails_raw=os.environ["RESEND_TO_EMAILS"],
+            )
 
     def test_resend_service_setup_error_missing_to_emails(self, monkeypatch):
         """Test that Resend raises KeyError when RESEND_TO_EMAILS is missing."""
@@ -52,14 +61,23 @@ class TestResend:
         monkeypatch.delenv("RESEND_TO_EMAILS", raising=False)
 
         with pytest.raises(KeyError):
-            Resend()
+            Resend(
+                api_key=os.environ["RESEND_API_KEY"],
+                from_email=os.environ["RESEND_FROM_EMAIL"],
+                to_emails_raw=os.environ["RESEND_TO_EMAILS"],
+            )
 
     def test_resend_service_initialization(self, mock_resend_config):
         """Test that Resend service initializes correctly with valid configuration."""
         mock_resend_config()
 
         with patch("resend.api_key", None):
-            service = Resend(subject="Test Subject")
+            service = Resend(
+                api_key=os.environ["RESEND_API_KEY"],
+                from_email=os.environ["RESEND_FROM_EMAIL"],
+                to_emails_raw=os.environ["RESEND_TO_EMAILS"],
+                subject="Test Subject",
+            )
 
             assert service._api_key == "test_api_key"
             assert service._from_email == "test@example.com"
@@ -76,7 +94,12 @@ class TestResend:
         with patch("resend.Emails.send") as mock_send:
             mock_send.return_value = {"id": "test_email_id"}
 
-            service = Resend(subject="Test Email")
+            service = Resend(
+                api_key=os.environ["RESEND_API_KEY"],
+                from_email=os.environ["RESEND_FROM_EMAIL"],
+                to_emails_raw=os.environ["RESEND_TO_EMAILS"],
+                subject="Test Email",
+            )
             service.send_notification(message)
 
             mock_send.assert_called_once()
@@ -97,7 +120,11 @@ class TestResend:
         with patch("resend.Emails.send") as mock_send:
             mock_send.return_value = {"id": "test_email_id"}
 
-            service = Resend()
+            service = Resend(
+                api_key=os.environ["RESEND_API_KEY"],
+                from_email=os.environ["RESEND_FROM_EMAIL"],
+                to_emails_raw=os.environ["RESEND_TO_EMAILS"],
+            )
             service.send_notification(message)
 
             call_args = mock_send.call_args[0][0]
@@ -113,7 +140,11 @@ class TestResend:
         with patch("resend.Emails.send") as mock_send:
             mock_send.return_value = {"error": "Invalid API key"}
 
-            service = Resend()
+            service = Resend(
+                api_key=os.environ["RESEND_API_KEY"],
+                from_email=os.environ["RESEND_FROM_EMAIL"],
+                to_emails_raw=os.environ["RESEND_TO_EMAILS"],
+            )
 
             with pytest.raises(Exception) as exc_info:
                 service.send_notification(message)
@@ -128,7 +159,11 @@ class TestResend:
         with patch("resend.Emails.send") as mock_send:
             mock_send.side_effect = Exception("Network error")
 
-            service = Resend()
+            service = Resend(
+                api_key=os.environ["RESEND_API_KEY"],
+                from_email=os.environ["RESEND_FROM_EMAIL"],
+                to_emails_raw=os.environ["RESEND_TO_EMAILS"],
+            )
 
             with pytest.raises(Exception) as exc_info:
                 service.send_notification(message)
@@ -143,7 +178,11 @@ class TestResend:
         with patch("resend.Emails.send") as mock_send:
             mock_send.return_value = {"error": "Rate limit exceeded"}
 
-            service = Resend()
+            service = Resend(
+                api_key=os.environ["RESEND_API_KEY"],
+                from_email=os.environ["RESEND_FROM_EMAIL"],
+                to_emails_raw=os.environ["RESEND_TO_EMAILS"],
+            )
 
             with pytest.raises(Exception) as exc_info:
                 service.send_notification(message)
