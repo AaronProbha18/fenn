@@ -84,30 +84,47 @@ def execute(args: argparse.Namespace) -> None:
         if requirements_file.exists():
             if HAS_RICH:
                 Console().print("\n[bold green]📦 Found template dependencies at requirements.txt[/bold green]")
-                Console().print("[cyan]Installing requirements automatically... (this may take a moment)[/cyan]\n")
             else:
                 print(f"\n{Fore.GREEN}📦 Found template dependencies at requirements.txt{Style.RESET_ALL}")
-                print(f"{Fore.CYAN}Installing requirements automatically... (this may take a moment){Style.RESET_ALL}\n")
             
+            # Interactive prompt - safely handles Ctrl+C or EOF interruptions
             try:
-                # sys.executable ensures the template's packages land right in the active venv
-                subprocess.run(
-                    [sys.executable, "-m", "pip", "install", "-r", str(requirements_file)],
-                    check=True,
-                    capture_output=False,  # Allows the user to track pip's stream progress bar live
-                )
+                response = input("Would you like to automatically install requirements? [y/N]: ").strip().lower()
+            except (KeyboardInterrupt, EOFError):
+                response = "n"
+                print() 
+            
+            
+            if response in ("y", "yes"):
                 if HAS_RICH:
-                    Console().print("\n[bold green]✅ All dependencies installed successfully![/bold green]")
+                    Console().print("[cyan]Installing requirements automatically... (this may take a moment)[/cyan]\n")
                 else:
-                    print(f"\n{Fore.GREEN}✅ All dependencies installed successfully!{Style.RESET_ALL}")
-            except subprocess.CalledProcessError as e:
+                    print(f"{Fore.CYAN}Installing requirements automatically... (this may take a moment){Style.RESET_ALL}\n")
+                
+                try:
+                    
+                    subprocess.run(
+                        [sys.executable, "-m", "pip", "install", "-r", str(requirements_file)],
+                        check=True,
+                        capture_output=False,  
+                    )
+                    if HAS_RICH:
+                        Console().print("\n[bold green]✅ All dependencies installed successfully![/bold green]")
+                    else:
+                        print(f"\n{Fore.GREEN}✅ All dependencies installed successfully!{Style.RESET_ALL}")
+                except subprocess.CalledProcessError as e:
+                    if HAS_RICH:
+                        Console().print(f"\n[bold red]⚠️ Automatic installation failed with exit code {e.returncode}.[/bold red]")
+                        Console().print("[yellow]Please run 'pip install -r requirements.txt' manually.[/yellow]")
+                    else:
+                        print(f"\n{Fore.RED}⚠️ Automatic installation failed with exit code {e.returncode}.{Style.RESET_ALL}")
+                        print(f"{Fore.YELLOW}Please run 'pip install -r requirements.txt' manually.{Style.RESET_ALL}")
+            else:
                 if HAS_RICH:
-                    Console().print(f"\n[bold red]⚠️ Automatic installation failed with exit code {e.returncode}.[/bold red]")
-                    Console().print("[yellow]Please run 'pip install -r requirements.txt' manually.[/yellow]")
+                    Console().print("[yellow]Skipping dependency installation.[/yellow]\n")
                 else:
-                    print(f"\n{Fore.RED}⚠️ Automatic installation failed with exit code {e.returncode}.{Style.RESET_ALL}")
-                    print(f"{Fore.YELLOW}Please run 'pip install -r requirements.txt' manually.{Style.RESET_ALL}")
-
+                    print(f"{Fore.YELLOW}Skipping dependency installation.{Style.RESET_ALL}\n")
+            
     except TemplateNotFoundError as e:
         print(f"{Fore.RED}{e}{Style.RESET_ALL}")
         sys.exit(1)
