@@ -73,6 +73,8 @@ def client(scanner_with_sessions):
     app_module.scanner = scanner_with_sessions
     app.config["TESTING"] = True
     with app.test_client() as c:
+        with c.session_transaction() as sess:
+            sess["user"] = {"email": "test@example.com"}  # любой dict
         yield c
     app_module.scanner = original
 
@@ -87,7 +89,9 @@ class TestApiSessionsShape:
 
     def test_default_response_shape(self, client):
         """Default call must return items, total, limit, and offset keys."""
-        resp = client.get("/api/sessions")
+        resp = client.get("/api/sessions", follow_redirects=True)
+        print(resp)
+        print(resp.data)
         assert resp.status_code == 200
         data = resp.get_json()
         assert "items" in data
