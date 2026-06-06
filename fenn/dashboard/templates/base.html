@@ -15,7 +15,7 @@
 <div class="layout">
 
   <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <img src="{{ url_for('static', filename='images/icon.png') }}"
            alt="fenn"
@@ -57,6 +57,9 @@
   <div class="main">
 
     <header class="topbar">
+      <button class="hamburger" id="sidebar-toggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
       <div class="breadcrumb">
         {% block breadcrumb %}{% endblock %}
       </div>
