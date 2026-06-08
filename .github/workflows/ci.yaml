@@ -32,6 +32,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install ".[torch,vision,test]"
 
+      - name: Trigger docs rebuild
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.DEV_DOCS_DISPATCH_TOKEN }}
+          repository: pyfenn/dev-docs
+          event-type: fenn-updated
+
       - name: Run tests with coverage
         run: |
           pytest --cov --cov-branch --cov-report=xml
