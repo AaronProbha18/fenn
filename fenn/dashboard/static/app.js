@@ -269,6 +269,38 @@
       document.activeElement?.blur();
     }
   });
+  // ── Sidebar hamburger toggle ───────────────────────────────────────────── //
+
+  const sidebarToggle = document.getElementById("sidebar-toggle");
+  const sidebar = document.getElementById("sidebar");
+
+  if (sidebarToggle && sidebar) {
+    sidebarToggle.addEventListener("click", () => {
+      const isOpen = sidebar.classList.toggle("open");
+      sidebarToggle.classList.toggle("is-open", isOpen);
+    });
+
+    // Close sidebar when clicking a nav item on mobile
+    sidebar.querySelectorAll(".nav-item").forEach((item) => {
+      item.addEventListener("click", () => {
+        if (window.innerWidth <= 600) {
+          sidebar.classList.remove("open");
+          sidebarToggle.classList.remove("is-open");
+        }
+      });
+    });
+
+    // Close sidebar when clicking outside
+    document.addEventListener("click", (e) => {
+      if (window.innerWidth <= 600 &&
+          sidebar.classList.contains("open") &&
+          !sidebar.contains(e.target) &&
+          !sidebarToggle.contains(e.target)) {
+        sidebar.classList.remove("open");
+        sidebarToggle.classList.remove("is-open");
+      }
+    });
+  }
 
   // ── Init ───────────────────────────────────────────────────────────────── //
 

@@ -804,6 +804,55 @@ mark, .log-msg .hl, .log-msg .highlight {
   color: var(--text-fade);
 }
 
+/* ── Hamburger menu ─────────────────────────────────────────────────── */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  margin-right: 12px;
+}
+.hamburger span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--text-mute);
+  border-radius: 2px;
+  transition: background .15s;
+}
+.hamburger:hover span { background: var(--accent); }
+.hamburger.is-open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.hamburger.is-open span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.is-open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+.hamburger span {
+  transition: transform .2s, opacity .2s, background .15s;
+}
+
+@media (max-width: 600px) {
+  .hamburger { display: flex; }
+  .sidebar {
+    display: none;
+    width: 100%;
+    position: fixed;
+    top: 56px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9;
+    overflow-y: auto;
+  }
+  .sidebar.open { display: flex; }
+}
+
 /* ── Responsive ────────────────────────────────────────────────────── */
 @media (max-width: 860px) {
   .log-entry {
