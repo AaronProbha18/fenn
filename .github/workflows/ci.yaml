@@ -11,6 +11,10 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
 
     steps:
       - name: Checkout
@@ -21,7 +25,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
@@ -34,6 +38,14 @@ jobs:
         run: |
           nox -t latest
           
+      - name: Trigger docs rebuild
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.DEV_DOCS_DISPATCH_TOKEN }}
+          repository: pyfenn/dev-docs
+          event-type: fenn-updated
+
       - name: Run tests with coverage
         run: |
           pytest --cov --cov-branch --cov-report=xml
@@ -72,3 +84,4 @@ jobs:
           
       - name: Run pre-commit hook
         run: pre-commit run --all-files
+

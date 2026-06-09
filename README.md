@@ -4,8 +4,7 @@
 
 <div align="center">
 
-[![DOI](https://zenodo.org/badge/1098344896.svg)](https://doi.org/10.5281/zenodo.20178659)![GitHub stars](https://img.shields.io/github/stars/blkdmr/fenn?style=social) ![GitHub forks](https://img.shields.io/github/forks/blkdmr/fenn?style=social) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/261c40f69583462baa200aee959bcc8f)](https://app.codacy.com/gh/blkdmr/fenn/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade) [![codecov](https://codecov.io/gh/pyfenn/fenn/graph/badge.svg?token=7RTTZ1SFMM)](https://codecov.io/gh/pyfenn/fenn)
-![PyPI version](https://img.shields.io/pypi/v/fenn) ![License](https://img.shields.io/github/license/blkdmr/fenn) [![PyPI Downloads](https://img.shields.io/pypi/dm/fenn.svg?label=downloads&logo=pypi&color=blue)](https://pypi.org/project/fenn/) [![Discord Server](https://img.shields.io/badge/Discord-PyFenn-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/6v9xtJxvN7)[![Sponsor](https://img.shields.io/badge/sponsor-GitHub-pink)](https://github.com/sponsors/blkdmr)
+![GitHub stars](https://img.shields.io/github/stars/blkdmr/fenn?style=social) ![GitHub forks](https://img.shields.io/github/forks/blkdmr/fenn?style=social) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/261c40f69583462baa200aee959bcc8f)](https://app.codacy.com/gh/blkdmr/fenn/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade) [![codecov](https://codecov.io/gh/pyfenn/fenn/graph/badge.svg?token=7RTTZ1SFMM)](https://codecov.io/gh/pyfenn/fenn) ![PyPI version](https://img.shields.io/pypi/v/fenn) ![License](https://img.shields.io/github/license/blkdmr/fenn) [![PyPI Downloads](https://img.shields.io/pypi/dm/fenn.svg?label=downloads&logo=pypi&color=blue)](https://pypi.org/project/fenn/) [![Discord Server](https://img.shields.io/badge/Discord-PyFenn-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/6v9xtJxvN7) [![Sponsor](https://img.shields.io/badge/sponsor-GitHub-pink)](https://github.com/sponsors/blkdmr)
 
 </div>
 
@@ -104,7 +103,7 @@ python main.py
 - **`fenn: command not found` after installation** — Your Python scripts directory may not be on your `PATH`. Try running with `python -m fenn` instead, or add the scripts directory to your PATH. On most systems: `export PATH="$HOME/.local/bin:$PATH"`.
 - **`fenn.yaml not found` when running `main.py`** — Make sure you are running the script from the same directory that contains `fenn.yaml`. fenn looks for the config file in the current working directory by default.
 - **`KeyError` on `args['section']['key']`** — The key referenced in your code does not exist in `fenn.yaml`. Double-check spelling in both files. YAML is case-sensitive.
-- **`ModuleNotFoundError` after pulling a template** — Install the template's dependencies first: `pip install -r requirements.txt`.
+- **`ModuleNotFoundError` after pulling a template** — `fenn` automatically attempts to install template dependencies during the pull process. If an environment issue prevents this, navigate into your project directory and run `pip install -r requirements.txt` manually.
 - **GitHub API rate limit exceeded during `fenn list` or `fenn pull`** — The unauthenticated GitHub API allows 60 requests/hour per IP. Wait a few minutes and try again, or set a `GITHUB_TOKEN` environment variable if your fenn version supports authenticated requests.
 
 ### Configuration
@@ -228,23 +227,6 @@ A quick reference for all available fenn CLI commands.
 | `fenn pull <template>` | Pull a template into the current directory |
 | `fenn pull <template> <path>` | Pull a template into the specified path (created if missing) |
 | `fenn pull <template> --force` | Pull a template and overwrite existing files |
-
-## Cite fenn
-
-If you use **fenn** in your work or research, please cite the project as:
-
-```bibtex
-@software{fenn,
-  author       = {Alessio Russo},
-  title        = {pyfenn/fenn: Release v0.2.0},
-  month        = may,
-  year         = 2026,
-  publisher    = {Zenodo},
-  version      = {v0.2.0},
-  doi          = {10.5281/zenodo.20178660},
-  url          = {https://doi.org/10.5281/zenodo.20178660},
-}
-```
 
 ## Contributing
 
