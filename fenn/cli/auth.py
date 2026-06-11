@@ -24,10 +24,9 @@ from fenn.utils.logging import logger
 def execute(args: argparse.Namespace) -> None:
     sub = getattr(args, "auth_command", None)
     if sub is None:
-        print(
+        logger.info(
             f"{Fore.RED}Missing auth subcommand. Try: "
-            f"{Fore.LIGHTYELLOW_EX}fenn auth login{Style.RESET_ALL}",
-            file=sys.stderr,
+            f"{Fore.LIGHTYELLOW_EX}fenn auth login{Style.RESET_ALL}"
         )
         sys.exit(1)
 
@@ -38,9 +37,8 @@ def execute(args: argparse.Namespace) -> None:
     elif sub == "logout":
         _logout(args)
     else:
-        print(
+        logger.info(
             f"{Fore.RED}Unknown auth subcommand: {sub}{Style.RESET_ALL}",
-            file=sys.stderr,
         )
         sys.exit(1)
 
@@ -67,7 +65,7 @@ def _login(args: argparse.Namespace) -> None:
             api_key = sys.stdin.readline().strip()
 
     if not api_key:
-        print(f"{Fore.RED}No API key provided.{Style.RESET_ALL}", file=sys.stderr)
+        logger.info(f"{Fore.RED}No API key provided.{Style.RESET_ALL}")
         sys.exit(1)
 
     path = write_credentials(api_key, profile=profile)
@@ -111,15 +109,13 @@ def _status(args: argparse.Namespace) -> None:
             f"{Fore.GREEN}  plan: {plan}{Style.RESET_ALL}"
         )
     except requests.exceptions.SSLError:
-        print(
+        logger.info(
             f"{Fore.RED}SSL verification failed for {DEFAULT_REMOTE_HOST}. "
             f"Try: pip install --upgrade certifi{Style.RESET_ALL}",
-            file=sys.stderr,
         )
     except (RemoteError, requests.exceptions.ConnectionError) as exc:
-        print(
+        logger.info(
             f"{Fore.RED}Could not reach host: {exc}{Style.RESET_ALL}",
-            file=sys.stderr,
         )
 
 
