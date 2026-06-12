@@ -5,6 +5,7 @@ import yaml
 from colorama import init
 
 from fenn.secrets.keystore import KeyStore
+from fenn.utils.logging import logger, write_config
 
 
 class Parser:
@@ -29,13 +30,7 @@ class Parser:
         self._initialized = True
 
     def _config_missing(self) -> None:
-        from fenn.logging import Logger
-
-        logger = Logger()
-
-        logger.display_exception(
-            f"Configuration file {self._config_file} was not found."
-        )
+        logger.exception(f"Configuration file {self._config_file} was not found.")
 
         raise FileNotFoundError(
             0,
@@ -58,9 +53,7 @@ class Parser:
 
     def print(self) -> None:
         """Public method to trigger the flattened print with colored paths."""
-        from fenn.logging import Logger
-
-        Logger().write_config(self._args)
+        write_config(self._args, self.config_file)
 
     @property
     def config_file(self) -> str:
