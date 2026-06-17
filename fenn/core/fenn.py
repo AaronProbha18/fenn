@@ -8,6 +8,7 @@ from fenn.export.exporter import Exporter
 from fenn.logging import Logger
 from fenn.secrets.keystore import KeyStore
 from fenn.utils import generate_session_id
+from fenn.utils.logging import logger
 
 
 class Fenn:
@@ -109,14 +110,13 @@ class Fenn:
         Exporter().configure(self._args)
 
         # Start logging
-        self._logger.start()
 
         # Print parsed config (user logs)
         self._parser.print()
 
         try:
             # System startup message
-            self._logger.display_info(
+            logger.info(
                 f"Application starting from entrypoint: {self._entrypoint_fn.__name__}"
             )
 

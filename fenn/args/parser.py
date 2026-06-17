@@ -5,7 +5,7 @@ import yaml
 from colorama import init
 
 from fenn.secrets.keystore import KeyStore
-from fenn.utils.logging import logger, write_config
+from fenn.utils.logging import logger
 
 
 class Parser:
@@ -53,7 +53,7 @@ class Parser:
 
     def print(self) -> None:
         """Public method to trigger the flattened print with colored paths."""
-        write_config(self._args, self.config_file)
+        logger.write_config(self._args, self.config_file)
 
     @property
     def config_file(self) -> str:
