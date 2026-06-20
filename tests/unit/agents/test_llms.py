@@ -1,8 +1,10 @@
 """Tests for fenn/agents/rag/llm.py (module-level ask/stream functions)."""
+
 import json
-import pytest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from fenn.agents.rag.llm import (
     DEFAULT_MODELS,
@@ -14,28 +16,31 @@ from fenn.agents.rag.llm import (
     stream,
 )
 
-
 # ── _detect_provider ───────────────────────────────────────────────────────────
 
+
 class TestDetectProvider:
-    @pytest.mark.parametrize("model,expected", [
-        ("gpt-4o-mini", "openai"),
-        ("gpt-3.5-turbo", "openai"),
-        ("o1-mini", "openai"),
-        ("o3-large", "openai"),
-        ("o4-preview", "openai"),
-        ("gemini-2.0-flash", "gemini"),
-        ("claude-3-5-haiku", "anthropic"),
-        ("mistral-small", "mistral"),
-        ("codestral-latest", "mistral"),
-        ("command-r-plus", "cohere"),
-        ("grok-beta", "xai"),
-        ("deepseek-chat", "deepseek"),
-        ("llama-3.1-8b", "groq"),
-        ("mixtral-8x7b", "groq"),
-        ("openai/gpt-4o", "openrouter"),
-        (None, "openrouter"),
-    ])
+    @pytest.mark.parametrize(
+        "model,expected",
+        [
+            ("gpt-4o-mini", "openai"),
+            ("gpt-3.5-turbo", "openai"),
+            ("o1-mini", "openai"),
+            ("o3-large", "openai"),
+            ("o4-preview", "openai"),
+            ("gemini-2.0-flash", "gemini"),
+            ("claude-3-5-haiku", "anthropic"),
+            ("mistral-small", "mistral"),
+            ("codestral-latest", "mistral"),
+            ("command-r-plus", "cohere"),
+            ("grok-beta", "xai"),
+            ("deepseek-chat", "deepseek"),
+            ("llama-3.1-8b", "groq"),
+            ("mixtral-8x7b", "groq"),
+            ("openai/gpt-4o", "openrouter"),
+            (None, "openrouter"),
+        ],
+    )
     def test_from_model_name(self, model, expected):
         assert _detect_provider(None, model, None) == expected
 
@@ -50,7 +55,9 @@ class TestDetectProvider:
         assert _detect_provider(None, None, PROVIDERS["openai"] + "/extra") == "openai"
 
     def test_unknown_base_url_defaults_to_openrouter(self):
-        assert _detect_provider(None, None, "https://custom.endpoint/v1") == "openrouter"
+        assert (
+            _detect_provider(None, None, "https://custom.endpoint/v1") == "openrouter"
+        )
 
     def test_base_url_takes_priority_over_model(self):
         assert _detect_provider(None, "gpt-4o", PROVIDERS["groq"]) == "groq"
@@ -60,6 +67,7 @@ class TestDetectProvider:
 
 
 # ── _resolve_key ───────────────────────────────────────────────────────────────
+
 
 class TestResolveKey:
     def test_explicit_key_wins(self):
@@ -88,6 +96,7 @@ class TestResolveKey:
 
 # ── Helpers for mocking openai responses ──────────────────────────────────────
 
+
 def _make_completion(content="response text"):
     message = SimpleNamespace(content=content)
     choice = SimpleNamespace(message=message)
@@ -109,6 +118,7 @@ def _mock_openai(content="response text"):
 
 # ── ask ────────────────────────────────────────────────────────────────────────
 
+
 class TestAsk:
     def _patched_ask(self, prompt, mock_client, **kwargs):
         RLE = type("RateLimitError", (Exception,), {})
@@ -116,7 +126,9 @@ class TestAsk:
         fake_openai.OpenAI.return_value = mock_client
         fake_openai.RateLimitError = RLE
         with patch.dict("sys.modules", {"openai": fake_openai}):
-            return ask(prompt, model_api_key="test-key", model_provider="openai", **kwargs)
+            return ask(
+                prompt, model_api_key="test-key", model_provider="openai", **kwargs
+            )
 
     def test_returns_text(self):
         result = self._patched_ask("hello", _mock_openai("hi there"))
@@ -198,7 +210,9 @@ class TestAsk:
 
         with patch.dict("sys.modules", {"openai": fake_openai}):
             with patch.object(llm_module, "time"):
-                result = ask("hi", model_api_key="key", model_provider="openai", retries=3)
+                result = ask(
+                    "hi", model_api_key="key", model_provider="openai", retries=3
+                )
         assert result == "ok"
 
     def test_raises_import_error_without_openai(self):
@@ -217,12 +231,11 @@ class TestAsk:
         with patch.dict("sys.modules", {"openai": fake_openai}):
             ask("hi", model_api_key="key", model_provider="openai", base_url=custom_url)
 
-        fake_openai.OpenAI.assert_called_once_with(
-            api_key="key", base_url=custom_url
-        )
+        fake_openai.OpenAI.assert_called_once_with(api_key="key", base_url=custom_url)
 
 
 # ── stream ─────────────────────────────────────────────────────────────────────
+
 
 class TestStream:
     def _patched_stream(self, prompt, chunks, **kwargs):
@@ -232,7 +245,9 @@ class TestStream:
         fake_openai.OpenAI.return_value = mock_client
         with patch.dict("sys.modules", {"openai": fake_openai}):
             return list(
-                stream(prompt, model_api_key="test-key", model_provider="openai", **kwargs)
+                stream(
+                    prompt, model_api_key="test-key", model_provider="openai", **kwargs
+                )
             ), mock_client
 
     def test_yields_tokens(self):
@@ -241,7 +256,12 @@ class TestStream:
         assert tokens == ["Hello", ", ", "world"]
 
     def test_skips_empty_delta(self):
-        chunks = [_make_chunk("Hi"), _make_chunk(""), _make_chunk(None), _make_chunk("!")]
+        chunks = [
+            _make_chunk("Hi"),
+            _make_chunk(""),
+            _make_chunk(None),
+            _make_chunk("!"),
+        ]
         tokens, _ = self._patched_stream("hi", chunks)
         assert tokens == ["Hi", "!"]
 

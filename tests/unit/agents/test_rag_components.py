@@ -1,30 +1,30 @@
 """Tests for fenn/agents/rag/chunker.py, loader.py, and rag.py"""
+
+from unittest.mock import MagicMock, patch
+
 import pytest
-from pathlib import Path
-from unittest.mock import MagicMock, patch, mock_open
 
 from fenn.agents.rag.chunker import (
-    chunk_text,
     _chunk_fixed,
     _chunk_paragraphs,
     _chunk_sentences,
     _chunk_smart,
+    chunk_text,
 )
-
 from fenn.agents.rag.loader import (
-    load_documents,
-    _read_file,
-    _read_pdf,
     _load_url,
     _load_wikipedia,
     _load_youtube,
+    _read_file,
+    _read_pdf,
+    load_documents,
 )
-
 from fenn.agents.rag.rag import RAG
 
 # ══════════════════════════════════════════════════════════════════════════════
 # chunker.py
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class TestChunkParagraphs:
     def test_splits_on_blank_line(self):
@@ -180,7 +180,9 @@ class TestLoadDocuments:
             load_documents("/nonexistent/path/file.txt")
 
     def test_routes_youtube_url(self):
-        with patch("fenn.agents.rag.loader._load_youtube", return_value="transcript") as m:
+        with patch(
+            "fenn.agents.rag.loader._load_youtube", return_value="transcript"
+        ) as m:
             result = load_documents("https://www.youtube.com/watch?v=abc123")
         m.assert_called_once()
         assert result == ["transcript"]
@@ -237,6 +239,7 @@ class TestReadPdf:
             mock_pypdf.PdfReader.return_value = mock_reader
             with patch.dict("sys.modules", {"pypdf": mock_pypdf}):
                 import fenn.agents.rag.loader as loader_mod
+
                 with patch.object(loader_mod, "_read_pdf", wraps=loader_mod._read_pdf):
                     pass  # just verifying import path
 
@@ -249,7 +252,6 @@ class TestReadPdf:
 
 
 class TestLoadUrl:
-
     def test_raises_import_error_without_httpx(self):
         with patch.dict("sys.modules", {"httpx": None, "bs4": None}):
             with pytest.raises(ImportError, match="httpx"):
@@ -268,7 +270,9 @@ class TestLoadUrl:
     def test_youtube_invalid_url_raises(self):
         mock_yta = MagicMock()
         with patch.dict("sys.modules", {"youtube_transcript_api": mock_yta}):
-            with patch("fenn.agents.rag.loader.YouTubeTranscriptApi", mock_yta, create=True):
+            with patch(
+                "fenn.agents.rag.loader.YouTubeTranscriptApi", mock_yta, create=True
+            ):
                 with pytest.raises((ValueError, Exception)):
                     _load_youtube("https://www.youtube.com/watch")  # no video ID
 
@@ -319,6 +323,7 @@ class TestRAGInit:
     def test_add_tool_returns_self(self):
         def _fn(x):
             return x
+
         rag = _make_rag()
         result = rag.add_tool(_fn)
         assert result is rag

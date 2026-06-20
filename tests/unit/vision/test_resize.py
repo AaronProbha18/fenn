@@ -1,6 +1,7 @@
+from unittest.mock import patch
+
 import numpy as np
 import pytest
-from unittest.mock import patch
 
 try:
     from fenn.experimental.vision import resize_batch
@@ -204,7 +205,6 @@ class TestResizeBatch:
 
     def test_antialias_disabled_for_nearest_downsampling(self):
         """nearest interpolation should never trigger antialias even when downsampling."""
-        import fenn.experimental.vision.resize as resize_module
         import torchvision.transforms.functional as F
 
         array = np.random.randint(0, 255, (1, 100, 100, 3), dtype=np.uint8)
@@ -213,7 +213,9 @@ class TestResizeBatch:
 
         def mock_resize(tensor, size, interpolation, antialias):
             calls.append(antialias)
-            return original_resize(tensor, size, interpolation=interpolation, antialias=antialias)
+            return original_resize(
+                tensor, size, interpolation=interpolation, antialias=antialias
+            )
 
         with patch.object(F, "resize", side_effect=mock_resize):
             resize_batch(array, size=(50, 50), interpolation="nearest")
@@ -222,7 +224,6 @@ class TestResizeBatch:
 
     def test_antialias_enabled_for_bilinear_downsampling(self):
         """bilinear downsampling should enable antialias."""
-        import fenn.experimental.vision.resize as resize_module
         import torchvision.transforms.functional as F
 
         array = np.random.randint(0, 255, (1, 100, 100, 3), dtype=np.uint8)
@@ -231,7 +232,9 @@ class TestResizeBatch:
 
         def mock_resize(tensor, size, interpolation, antialias):
             calls.append(antialias)
-            return original_resize(tensor, size, interpolation=interpolation, antialias=antialias)
+            return original_resize(
+                tensor, size, interpolation=interpolation, antialias=antialias
+            )
 
         with patch.object(F, "resize", side_effect=mock_resize):
             resize_batch(array, size=(50, 50), interpolation="bilinear")

@@ -1,11 +1,11 @@
 """Tests for fenn/agents/node.py"""
-import pytest
+
 from unittest.mock import MagicMock, patch
 
-from fenn.agents.node import ThinkNode, ActNode, ObserveNode
-
+from fenn.agents.node import ActNode, ObserveNode, ThinkNode
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def _shared(
     messages=None,
@@ -26,6 +26,7 @@ def _shared(
 
 
 # ── ThinkNode ──────────────────────────────────────────────────────────────────
+
 
 class TestThinkNode:
     def test_prep_returns_llm_and_messages(self):
@@ -61,7 +62,10 @@ class TestThinkNode:
         node = ThinkNode()
         shared = _shared()
         node.post(shared, {}, "Some thought.")
-        assert shared["messages"][-1] == {"role": "assistant", "content": "Some thought."}
+        assert shared["messages"][-1] == {
+            "role": "assistant",
+            "content": "Some thought.",
+        }
 
     def test_post_stores_last_thought(self):
         node = ThinkNode()
@@ -71,6 +75,7 @@ class TestThinkNode:
 
 
 # ── ActNode ────────────────────────────────────────────────────────────────────
+
 
 class TestActNode:
     def test_prep_returns_last_thought(self):
@@ -89,7 +94,9 @@ class TestActNode:
     def test_exec_without_action_prefix(self):
         node = ActNode()
         thought = "lookup(wikipedia)"
-        with patch("fenn.agents.node.execute_tool", return_value="wiki result") as mock_tool:
+        with patch(
+            "fenn.agents.node.execute_tool", return_value="wiki result"
+        ) as mock_tool:
             result = node.exec(thought)
         mock_tool.assert_called_once_with("lookup", "wikipedia")
         assert result == "wiki result"
@@ -97,7 +104,9 @@ class TestActNode:
     def test_exec_tool_exception_returns_error_string(self):
         node = ActNode()
         thought = "Action: bad_tool(arg)"
-        with patch("fenn.agents.node.execute_tool", side_effect=ValueError("not found")):
+        with patch(
+            "fenn.agents.node.execute_tool", side_effect=ValueError("not found")
+        ):
             result = node.exec(thought)
         assert result == "Error: not found"
 
@@ -117,6 +126,7 @@ class TestActNode:
 
 
 # ── ObserveNode ────────────────────────────────────────────────────────────────
+
 
 class TestObserveNode:
     def test_prep_returns_last_observation(self):

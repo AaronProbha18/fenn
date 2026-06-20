@@ -2,17 +2,18 @@
 Additional tests for LLMClient._openai_client, .chat_complete, .ask, and .stream.
 Merge with or run alongside test_llm.py.
 """
+
 import json
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pydantic import BaseModel
 
 from fenn.agents.llm import LLMClient
 
-
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def _make_client(provider="openai", model="gpt-4o-mini", api_key="test-key"):
     """Build an LLMClient bypassing env-var lookup."""
@@ -33,6 +34,7 @@ def _make_completion(content="Hello!"):
 
 # ── _openai_client ─────────────────────────────────────────────────────────────
 
+
 def test_openai_client_returns_openai_instance(monkeypatch):
     fake_openai_cls = MagicMock()
     fake_instance = MagicMock()
@@ -42,7 +44,9 @@ def test_openai_client_returns_openai_instance(monkeypatch):
         client = _make_client()
         result = client._openai_client()
 
-    fake_openai_cls.assert_called_once_with(api_key="test-key", base_url=client.base_url)
+    fake_openai_cls.assert_called_once_with(
+        api_key="test-key", base_url=client.base_url
+    )
     assert result is fake_instance
 
 
@@ -54,6 +58,7 @@ def test_openai_client_raises_on_missing_package():
 
 
 # ── chat_complete ──────────────────────────────────────────────────────────────
+
 
 def test_chat_complete_returns_text():
     client = _make_client()
@@ -70,11 +75,17 @@ def test_chat_complete_returns_text():
 
         # Simpler: patch at the openai module level
         import fenn.agents.llm as llm_module
+
         fake_rle = type("RateLimitError", (Exception,), {})
         with patch.object(llm_module, "time"):
-            with patch("builtins.__import__", side_effect=lambda name, *a, **kw: (
-                SimpleNamespace(RateLimitError=fake_rle) if name == "openai" else __import__(name, *a, **kw)
-            )):
+            with patch(
+                "builtins.__import__",
+                side_effect=lambda name, *a, **kw: (
+                    SimpleNamespace(RateLimitError=fake_rle)
+                    if name == "openai"
+                    else __import__(name, *a, **kw)
+                ),
+            ):
                 pass
 
         # Cleanest approach: mock the whole call chain
@@ -173,18 +184,20 @@ def test_chat_complete_retries_on_rate_limit():
         with patch.object(llm_module, "time") as mock_time:
             # patch the RateLimitError import inside chat_complete
             with patch("builtins.__import__") as mock_import:
+
                 def side_import(name, *args, **kwargs):
                     if name == "openai":
                         return SimpleNamespace(RateLimitError=RLE)
                     return __import__(name, *args, **kwargs)
+
                 mock_import.side_effect = side_import
 
                 with pytest.raises(RLE):
-                    client.chat_complete(
-                        [{"role": "user", "content": "hi"}], retries=3
-                    )
+                    client.chat_complete([{"role": "user", "content": "hi"}], retries=3)
 
-            assert mock_time.sleep.call_count == 2  # retries-1 sleeps before final raise
+            assert (
+                mock_time.sleep.call_count == 2
+            )  # retries-1 sleeps before final raise
 
 
 def test_chat_complete_rate_limit_retry_succeeds():
@@ -201,10 +214,12 @@ def test_chat_complete_rate_limit_retry_succeeds():
     with patch.object(client, "_openai_client", return_value=mock_oa):
         with patch.object(llm_module, "time"):
             with patch("builtins.__import__") as mock_import:
+
                 def side_import(name, *args, **kwargs):
                     if name == "openai":
                         return SimpleNamespace(RateLimitError=RLE)
                     return __import__(name, *args, **kwargs)
+
                 mock_import.side_effect = side_import
 
                 result = client.chat_complete(
@@ -223,6 +238,7 @@ def test_chat_complete_raises_import_error_without_openai():
 
 
 # ── ask ────────────────────────────────────────────────────────────────────────
+
 
 def test_ask_delegates_to_chat_complete():
     client = _make_client()
@@ -252,6 +268,7 @@ def test_ask_passes_schema_and_retries():
 
 
 # ── stream ─────────────────────────────────────────────────────────────────────
+
 
 def _make_chunk(content):
     delta = SimpleNamespace(content=content)
