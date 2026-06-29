@@ -3,11 +3,11 @@ from typing import Any, Callable, Optional
 
 from colorama import Fore, Style
 
-from fenn.args import Parser
-from fenn.export.exporter import Exporter
-from fenn.secrets.keystore import KeyStore
-from fenn.utils import generate_session_id
-from fenn.utils.logging import logger, original_print, redirect_prints, restore_prints
+from fenn.exporter import Exporter
+from fenn.keystore import KeyStore
+from fenn.logging import logger, original_print, redirect_prints, restore_prints
+from fenn.parser import Parser
+from fenn.reproducibility import generate_session_id
 
 
 class Fenn:
