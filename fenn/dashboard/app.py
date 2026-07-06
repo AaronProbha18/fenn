@@ -7,7 +7,8 @@ import logging
 import secrets
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
+from urllib.parse import urlencode
 
 from flask import (
     Flask,
@@ -55,8 +56,8 @@ app.config.update(
     WTF_CSRF_TIME_LIMIT=None,
 )
 
-# CSRF on /connect and /logout. Even though we listen on 127.0.0.1, any tab in
-# the user's browser could POST cross-origin without it.
+# CSRF on /connect/start and /logout. Even though we listen on 127.0.0.1, any
+# tab in the user's browser could POST cross-origin without it.
 csrf = CSRFProtect(app)
 
 scanner = FennScanner()
@@ -68,10 +69,12 @@ def _inject_current_user() -> dict[str, Any]:
 
 
 # Endpoints that must remain reachable without a session.
-_PUBLIC_ENDPOINTS = frozenset({"connect", "logout", "static"})
+_PUBLIC_ENDPOINTS = frozenset(
+    {"connect", "connect_start", "connect_callback", "logout", "static"}
+)
 
 _STORED_TOKEN_EXPIRED_MESSAGE = (
-    "Your saved dashboard token expired or was revoked. Paste a fresh one to continue."
+    "Your saved dashboard session expired or was revoked. Sign in again to continue."
 )
 _STORED_TOKEN_OFFLINE_MESSAGE = (
     "Could not reach https://pyfenn.com to verify your saved token. "
@@ -94,7 +97,7 @@ def _try_stored_session() -> Response | None:
         user = dashboard_auth.validate_token(stored["token"])
     except dashboard_auth.InvalidTokenError:
         # Server explicitly rejected the saved token — drop it and force a
-        # fresh paste. Flash a message so the user understands why.
+        # fresh sign-in. Flash a message so the user understands why.
         token_store.clear()
         session.clear()
         session["pending_info"] = _STORED_TOKEN_EXPIRED_MESSAGE
@@ -318,11 +321,15 @@ _NETWORK_ERROR_MESSAGE = (
     "Could not reach https://pyfenn.com. Verify your internet connection "
     "or open an issue at https://github.com/pyfenn/fenn/issues."
 )
-_INVALID_TOKEN_MESSAGE = "Invalid or expired token."
+_INVALID_TOKEN_MESSAGE = "Sign-in failed or was declined. Try connecting again."
+_STATE_MISMATCH_MESSAGE = (
+    "The sign-in response didn't match this session. Start again from this page."
+)
 
 
-@app.route("/connect", methods=["GET", "POST"])
-def connect() -> Response:
+@app.route("/connect")
+def connect():
+    """Landing page: a button that starts the pyfenn.com browser sign-in."""
     # Already signed in → bounce to home.
     if dashboard_auth.current_user() is not None:
         return redirect(url_for("index"))
@@ -330,15 +337,39 @@ def connect() -> Response:
     # One-shot info message set by the auth gate (e.g. "your saved token
     # expired"). Pop so it doesn't persist past this render.
     info_message = session.pop("pending_info", None)
+    return render_template(
+        "connect.html", error_message=None, info_message=info_message
+    )
 
-    if request.method == "GET":
-        return render_template(  # type: ignore[return-value]
-            "connect.html", error_message=None, info_message=info_message
-        )
 
-    token = request.form.get("token", "")
+@app.route("/connect/start", methods=["POST"])
+def connect_start():
+    """Kick off the browser-OAuth pairing: redirect to pyfenn.com/dashboard/link."""
+    # A per-attempt random value round-tripped through pyfenn.com so the
+    # callback can prove the response belongs to a sign-in we initiated.
+    state = secrets.token_urlsafe(32)
+    session["oauth_state"] = state
+
+    redirect_uri = url_for("connect_callback", _external=True)
+    query = urlencode({"redirect_uri": redirect_uri, "state": state})
+    return redirect(f"{dashboard_auth.AUTH_URL}{dashboard_auth.LINK_PATH}?{query}")
+
+
+@app.route("/connect/callback")
+def connect_callback():
+    """Receive the one-time code from pyfenn.com and exchange it for a session."""
+    expected_state = session.pop("oauth_state", None)
+    got_state = request.args.get("state", "")
+    if not expected_state or not secrets.compare_digest(expected_state, got_state):
+        return render_template(
+            "connect.html",
+            error_message=_STATE_MISMATCH_MESSAGE,
+            info_message=None,
+        ), 400
+
+    code = request.args.get("code", "")
     try:
-        user = dashboard_auth.validate_token(token)
+        result = dashboard_auth.exchange_code(code)
     except dashboard_auth.InvalidTokenError:
         return render_template(  # type: ignore[return-value]
             "connect.html",
@@ -352,13 +383,15 @@ def connect() -> Response:
             info_message=None,
         ), 503
 
+    user = {"user_id": result["user_id"], "email": result["email"]}
     # Session fixation defence: rotate the session ID before binding the
     # user, matching the pattern simple-server uses on OAuth callback.
     session.clear()
     session["user"] = user
     session.permanent = True
-    # Persist so the next dashboard launch skips the paste step.
-    token_store.save(token.strip(), user)
+    # Persist the auto-provisioned token so the next launch skips sign-in and
+    # re-validates silently against /api/dashboard/me.
+    token_store.save(result["token"], user)
     return redirect(url_for("index"))
 
 

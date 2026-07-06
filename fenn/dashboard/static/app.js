@@ -157,7 +157,7 @@
 
   if (logoutForm && logoutDialog) {
     const fallbackPrompt =
-      "Disconnect? You'll need to paste your dashboard token again next time. " +
+      "Disconnect? You'll need to sign in with pyfenn.com again next time. " +
       "If you just want to stop, close this tab instead.";
 
     logoutForm.addEventListener("submit", (e) => {

@@ -1,11 +1,12 @@
 """pyfenn.com auth gate for the local Fenn log dashboard.
 
-The dashboard is a localhost-only Flask app. To authenticate, the user
-generates a "dashboard token" on pyfenn.com, pastes it into the
-``/connect`` page, and the server validates it once against
-``https://pyfenn.com/api/dashboard/me``. On success, we store
-``{user_id, email}`` in a signed Flask session cookie and discard the
-token — it is never written to disk or kept in memory.
+The dashboard is a localhost-only Flask app. To authenticate, the user clicks
+"Sign in with pyfenn.com": a browser tab opens ``/dashboard/link`` (normal
+Google/GitHub OAuth + a consent click), and pyfenn.com hands back a one-time
+code to the loopback callback. :func:`exchange_code` trades that code for an
+auto-provisioned dashboard token, which we cache so the next launch re-validates
+silently against ``https://pyfenn.com/api/dashboard/me`` (:func:`validate_token`)
+— the user never mints or pastes a token by hand.
 """
 
 from __future__ import annotations
@@ -20,6 +21,10 @@ from fenn.logging import logger
 
 AUTH_URL = "https://pyfenn.com"
 ME_PATH = "/api/dashboard/me"
+EXCHANGE_PATH = "/api/dashboard/exchange"
+# Where the browser is sent to sign in + consent. The local callback + state
+# are appended by the dashboard app.
+LINK_PATH = "/dashboard/link"
 
 # Mirror of the regex in simple-server's app/server/dashboard_auth.py.
 # Update both sides together if the token format changes.
@@ -66,9 +71,9 @@ def validate_token(token: str) -> dict:
     if not token:
         raise InvalidTokenError("empty token")
 
-    # Trim incidental whitespace from paste, then enforce length + format
-    # *before* sending anything over the wire — this prevents accidentally
-    # exfiltrating arbitrary pasted content as a Bearer header.
+    # Enforce length + format *before* sending anything over the wire — the
+    # token comes from the on-disk cache, but validating shape first keeps a
+    # corrupted cache file from being sent as a Bearer header.
     candidate = token.strip()
     if len(candidate) > _MAX_TOKEN_LEN or not _TOKEN_RE.match(candidate):
         raise InvalidTokenError("malformed token")
@@ -108,3 +113,58 @@ def validate_token(token: str) -> dict:
         raise AuthUnreachableError("missing user_id or email in response")
 
     return {"user_id": user_id, "email": email}
+
+
+def exchange_code(code: str) -> dict:
+    """Trade a one-time link code from pyfenn.com for a dashboard session.
+
+    Returns ``{"user_id", "email", "token"}`` on success. The ``token`` is the
+    auto-provisioned dashboard token to cache for silent re-auth on the next
+    launch (via :func:`validate_token` against ``/api/dashboard/me``).
+
+    Raises :class:`InvalidTokenError` if pyfenn.com rejects the code, or
+    :class:`AuthUnreachableError` on a network / response-shape failure.
+    """
+    if not code:
+        raise InvalidTokenError("empty code")
+
+    try:
+        response = requests.post(
+            AUTH_URL + EXCHANGE_PATH,
+            json={"code": code},
+            timeout=_TIMEOUT,
+            allow_redirects=False,
+        )
+    except requests.RequestException as exc:
+        logger.warning("dashboard-auth: pyfenn.com unreachable: %s", type(exc).__name__)
+        raise AuthUnreachableError(str(exc)) from exc
+
+    if response.status_code == 400:
+        raise InvalidTokenError("code rejected")
+    if response.status_code != 200:
+        logger.warning("dashboard-auth: unexpected status %d", response.status_code)
+        raise AuthUnreachableError(f"unexpected status {response.status_code}")
+
+    content_type = response.headers.get("Content-Type", "")
+    if not content_type.startswith("application/json"):
+        raise AuthUnreachableError("unexpected response content-type")
+    if len(response.content) > _MAX_RESPONSE_BYTES:
+        raise AuthUnreachableError("response too large")
+
+    try:
+        body = response.json()
+    except ValueError as exc:
+        raise AuthUnreachableError("malformed JSON response") from exc
+
+    user_id = body.get("user_id")
+    email = body.get("email")
+    token = body.get("token")
+    if (
+        not isinstance(user_id, str)
+        or not isinstance(email, str)
+        or not isinstance(token, str)
+        or not token
+    ):
+        raise AuthUnreachableError("missing user_id, email, or token in response")
+
+    return {"user_id": user_id, "email": email, "token": token}
