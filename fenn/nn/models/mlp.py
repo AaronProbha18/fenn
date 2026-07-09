@@ -170,10 +170,8 @@ class BaseMLP:
         y_train, y_val = y[:-n_val], y[-n_val:]
         return X_train, y_train, X_val, y_val
 
-    def _make_optimizer(self) -> torch.optim.Optimizer:
-        return _SOLVERS[self.solver](
-            self._model.parameters(), lr=self.learning_rate_init
-        )
+    def _make_optimizer(self, model: nn.Module) -> torch.optim.Optimizer:
+        return _SOLVERS[self.solver](model.parameters(), lr=self.learning_rate_init)
 
     def _check_is_fitted(self) -> None:
         if self._trainer is None:
@@ -203,6 +201,9 @@ class MLPClassifier(BaseMLP):
         even though the underlying :class:`ClassificationTrainer` supports it.
     """
 
+    _trainer: ClassificationTrainer | None
+    classes_: np.ndarray
+
     def fit(self, X, y) -> "MLPClassifier":
         """Fit the MLP classifier on the given training data.
 
@@ -229,15 +230,16 @@ class MLPClassifier(BaseMLP):
 
         self.n_features_in_ = X_t.shape[1]
         out_features = 1 if num_classes == 2 else num_classes
-        self._model = _build_mlp(
+        model = _build_mlp(
             self.n_features_in_, self.hidden_layer_sizes, out_features, self.activation
         )
+        self._model = model
 
         loss_fn = nn.BCEWithLogitsLoss() if num_classes == 2 else nn.CrossEntropyLoss()
-        optimizer = self._make_optimizer()
+        optimizer = self._make_optimizer(model)
 
-        self._trainer = ClassificationTrainer(
-            model=self._model,
+        trainer = ClassificationTrainer(
+            model=model,
             loss_fn=loss_fn,
             optim=optimizer,
             num_classes=num_classes,
@@ -246,6 +248,7 @@ class MLPClassifier(BaseMLP):
             if self.early_stopping
             else None,
         )
+        self._trainer = trainer
 
         val_loader = None
         if self.early_stopping:
@@ -255,7 +258,7 @@ class MLPClassifier(BaseMLP):
         else:
             train_loader = _make_loader(X_t, y_t, self.batch_size, shuffle=True)
 
-        self._trainer.fit(train_loader, epochs=self.max_iter, val_loader=val_loader)
+        trainer.fit(train_loader, epochs=self.max_iter, val_loader=val_loader)
         return self
 
     def predict(self, X) -> np.ndarray:
@@ -269,6 +272,7 @@ class MLPClassifier(BaseMLP):
             original label values seen during :meth:`fit`.
         """
         self._check_is_fitted()
+        assert self._trainer is not None
         X_t = _to_tensor(X)
         preds = self._trainer.predict(X_t)
         return self.classes_[np.asarray(preds)]
@@ -284,6 +288,7 @@ class MLPClassifier(BaseMLP):
             probabilities for each class, ordered as in ``self.classes_``.
         """
         self._check_is_fitted()
+        assert self._trainer is not None
         X_t = _to_tensor(X)
         _, proba = self._trainer.predict(X_t, return_proba=True)
         proba_arr = np.asarray(proba)
@@ -312,6 +317,8 @@ class MLPRegressor(BaseMLP):
         >>> reg.predict(X_test)
     """
 
+    _trainer: RegressionTrainer | None
+
     def fit(self, X, y) -> "MLPRegressor":
         """Fit the MLP regressor on the given training data.
 
@@ -326,15 +333,16 @@ class MLPRegressor(BaseMLP):
         y_t = _to_tensor(y).view(-1, 1)
 
         self.n_features_in_ = X_t.shape[1]
-        self._model = _build_mlp(
+        model = _build_mlp(
             self.n_features_in_, self.hidden_layer_sizes, 1, self.activation
         )
+        self._model = model
 
         loss_fn = nn.MSELoss()
-        optimizer = self._make_optimizer()
+        optimizer = self._make_optimizer(model)
 
-        self._trainer = RegressionTrainer(
-            model=self._model,
+        trainer = RegressionTrainer(
+            model=model,
             loss_fn=loss_fn,
             optim=optimizer,
             device=self.device,
@@ -342,6 +350,7 @@ class MLPRegressor(BaseMLP):
             if self.early_stopping
             else None,
         )
+        self._trainer = trainer
 
         val_loader = None
         if self.early_stopping:
@@ -351,12 +360,13 @@ class MLPRegressor(BaseMLP):
         else:
             train_loader = _make_loader(X_t, y_t, self.batch_size, shuffle=True)
 
-        self._trainer.fit(train_loader, epochs=self.max_iter, val_loader=val_loader)
+        trainer.fit(train_loader, epochs=self.max_iter, val_loader=val_loader)
         return self
 
     def predict(self, X) -> np.ndarray:
         """Predict continuous targets for samples in ``X``."""
         self._check_is_fitted()
+        assert self._trainer is not None
         X_t = _to_tensor(X)
         preds = self._trainer.predict(X_t)
         return np.asarray(preds)
