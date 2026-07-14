@@ -233,7 +233,11 @@ class ClassificationTrainer(Trainer):
                         labels = labels.to(self._device)
 
                         outputs = self._model(data)
-                        val_batch_loss = self._loss_fn(outputs, labels)
+                        loss_labels = labels
+                        if self._num_classes == 2:
+                            loss_labels = labels.view(-1, 1).float()
+
+                        val_batch_loss = self._loss_fn(outputs, loss_labels)
 
                         val_total_loss += float(val_batch_loss.item())
                         val_n_batches += 1
@@ -246,7 +250,10 @@ class ClassificationTrainer(Trainer):
                             preds = torch.argmax(outputs, dim=1)
 
                         val_predictions.extend(preds.cpu().tolist())
-                        val_labels.extend(labels.cpu().tolist())
+                        if self._num_classes == 2:
+                            val_labels.extend(labels.cpu().view(-1).tolist())
+                        else:
+                            val_labels.extend(labels.cpu().tolist())
 
                 if val_n_batches == 0:
                     raise ValueError("val_loader produced 0 batches; cannot validate.")
