@@ -179,6 +179,14 @@ class TestClassificationTrainerFit:
         _fit(trainer, _make_dataloader(n_batches=1, n_classes=2), epochs=1)
         assert trainer._state.train_loss is not None
 
+    def test_binary_validation_label_reshaped(self):
+        trainer = _make_trainer(num_classes=2)
+        trainer._loss_fn = nn.BCEWithLogitsLoss()
+        trainer._model = nn.Linear(4, 1)
+        loader = _make_dataloader(n_batches=1, n_classes=2)
+        _fit(trainer, loader, epochs=1, val_loader=loader)
+        assert trainer._state.val_loss is not None
+
     def test_multiple_epochs(self):
         trainer = _make_trainer(num_classes=3)
         _fit(trainer, _make_dataloader(n_classes=3), epochs=3)

@@ -153,17 +153,6 @@ class TestMLPClassifierBinary:
         preds = clf.predict(X)
         assert set(preds).issubset({"cat", "dog"})
 
-    @pytest.mark.xfail(
-        reason=(
-            "Pre-existing bug in ClassificationTrainer.fit(): the validation branch "
-            "does not reshape labels to (-1, 1) for binary classification the way the "
-            "training branch does, so BCEWithLogitsLoss raises a shape mismatch as soon "
-            "as a val_loader is used with num_classes == 2. Flagged upstream; not fixed "
-            "here since this module must not contain training-loop code. "
-            "See ClassificationTrainer.fit, the '--- VALIDATION ---' block."
-        ),
-        strict=True,
-    )
     def test_early_stopping_runs(self):
         X, y = _make_classification_data(n_samples=60, n_classes=2)
         clf = MLPClassifier(
