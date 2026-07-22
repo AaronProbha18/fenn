@@ -142,3 +142,12 @@ class SessionListResponse(TypedDict):
     total: int
     limit: int
     offset: int
+
+
+class TemplateEntry(TypedDict):
+    """A single registered template."""
+
+    name: str
+    path: str
+    source_template: str
+    pulled_at: str
