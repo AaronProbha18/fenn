@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 from pathlib import Path
 
 from fenn.dashboard.types import TemplateEntry
@@ -18,6 +19,15 @@ def _default_registry_path() -> Path:
     return Path(
         os.environ.get("FENN_TEMPLATES_REGISTRY_PATH", _DEFAULT_REGISTRY_PATH)
     ).expanduser()
+
+
+def _is_pytest_temp_path(path: Path) -> bool:
+    """Return whether a path looks like a pytest pull-template artifact."""
+    lowered_parts = [part.lower() for part in path.parts]
+    has_pytest_root = any(part.startswith("pytest-of-") for part in lowered_parts)
+    has_pytest_run = any(re.fullmatch(r"pytest-\d+", part) for part in lowered_parts)
+    has_pull_test = any(part.startswith("test_pull_template") for part in lowered_parts)
+    return has_pytest_root and has_pytest_run and has_pull_test
 
 
 class TemplatesRegistry:
@@ -88,7 +98,7 @@ class TemplatesRegistry:
     def _prune_missing(
         entries: dict[str, TemplateEntry],
     ) -> tuple[dict[str, TemplateEntry], bool]:
-        """Drop entries whose directory no longer exists on disk.
+        """Drop entries that are stale or point to pytest temp directories.
 
         Args:
             entries: The registry entries to prune.
@@ -99,7 +109,11 @@ class TemplatesRegistry:
         pruned: dict[str, TemplateEntry] = {}
         changed = False
         for key, entry in entries.items():
-            if Path(entry["path"]).exists():
+            entry_path = Path(entry["path"])
+            if _is_pytest_temp_path(entry_path):
+                changed = True
+                continue
+            if entry_path.exists():
                 pruned[key] = entry
             else:
                 changed = True
@@ -134,6 +148,10 @@ class TemplatesRegistry:
         entries, _ = self._prune_missing(entries)
 
         resolved_path = str(Path(entry["path"]).resolve())
+        if _is_pytest_temp_path(Path(resolved_path)):
+            self._save_raw(entries)
+            return
+
         entries[resolved_path] = TemplateEntry(
             name=entry["name"],
             path=resolved_path,
