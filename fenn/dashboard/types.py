@@ -145,9 +145,20 @@ class SessionListResponse(TypedDict):
 
 
 class TemplateEntry(TypedDict):
-    """A single registered template."""
+    """A single registered template (from the local templates registry)."""
 
     name: str
     path: str
     source_template: str
     pulled_at: str
+
+
+class TemplatesPayload(TypedDict):
+    """GET /templates and GET /api/templates/local — locally downloaded templates."""
+
+    projects: List[ProjectStats]
+
+    templates: List[TemplateEntry]
+    total_templates: int
+
+    active_page: Literal["templates"]
