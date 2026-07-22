@@ -262,3 +262,49 @@ class TestPruning:
 
         # Should not raise even though persisting the prune fails.
         assert registry.list_templates() == []
+
+    def test_existing_pytest_temp_entry_is_pruned_even_if_directory_exists(
+        self, tmp_path, registry_path, registry
+    ):
+        pytest_temp_dir = (
+            tmp_path
+            / "pytest-of-user"
+            / "pytest-123"
+            / "test_pull_template_success0"
+            / "downloaded-template"
+        )
+        pytest_temp_dir.mkdir(parents=True)
+
+        registry_path.parent.mkdir(parents=True, exist_ok=True)
+        registry_path.write_text(
+            json.dumps(
+                {
+                    str(pytest_temp_dir.resolve()): {
+                        "name": "downloaded-template",
+                        "path": str(pytest_temp_dir.resolve()),
+                        "source_template": "base",
+                        "pulled_at": "2026-07-21T10:00:00+00:00",
+                    }
+                }
+            )
+        )
+
+        assert registry.list_templates() == []
+        assert json.loads(registry_path.read_text()) == {}
+
+    def test_add_or_update_ignores_pytest_temp_directory(
+        self, tmp_path, registry, registry_path
+    ):
+        pytest_temp_dir = (
+            tmp_path
+            / "pytest-of-user"
+            / "pytest-456"
+            / "test_pull_template_success0"
+            / "downloaded-template"
+        )
+        pytest_temp_dir.mkdir(parents=True)
+
+        registry.add_or_update(_entry("downloaded-template", pytest_temp_dir))
+
+        assert registry.list_templates() == []
+        assert json.loads(registry_path.read_text()) == {}
