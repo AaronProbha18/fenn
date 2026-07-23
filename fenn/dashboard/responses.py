@@ -85,3 +85,19 @@ def filesystem_error(exc: Exception) -> Response:
         message=str(exc),
         param="path",
     )
+
+
+def template_not_registered(exc: Exception | str) -> Response:
+    return error_response(
+        code="template_not_registered",
+        message=str(exc),
+        param="path",
+    )
+
+
+def template_launch_failed(exc: Exception) -> Response:
+    return error_response(
+        code="template_launch_failed",
+        message=str(exc),
+        param="path",
+    )

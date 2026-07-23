@@ -1,5 +1,6 @@
 """Unit tests for FennScanner caching (Pick 2) and running-session detection."""
 
+import os
 from pathlib import Path
 from unittest.mock import patch
 
@@ -77,6 +78,8 @@ class TestParseCache:
         # Rewrite with different content (changes mtime on real FS)
         updated = _COMPLETED_FN.format(sid="s1").replace("hello", "world")
         fn.write_text(updated, encoding="utf-8")
+        new_mtime = fn.stat().st_mtime + 1
+        os.utime(fn, (new_mtime, new_mtime))
 
         result = scanner.parse_fn_file(fn)
 

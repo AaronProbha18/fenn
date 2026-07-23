@@ -162,3 +162,13 @@ class TemplatesPayload(TypedDict):
     total_templates: int
 
     active_page: Literal["templates"]
+
+
+class TemplateRunResponse(TypedDict):
+    """POST /api/templates/run — successful launch response."""
+
+    run_id: str
+    template_path: str
+    log_dir: str
+    pid: int
+    launched: Literal[True]
