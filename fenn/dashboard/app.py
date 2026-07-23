@@ -34,9 +34,12 @@ from fenn.dashboard.responses import (
     invalid_template,
     target_not_empty,
     template_download_unavailable,
+    template_launch_failed,
     template_list_unavailable,
     template_not_found,
+    template_not_registered,
 )
+from fenn.dashboard.runner import TemplateLaunchError, TemplateRunner
 from fenn.dashboard.templates_registry import TemplatesRegistry
 from fenn.dashboard.validation import (
     check_body,
@@ -85,6 +88,7 @@ csrf = CSRFProtect(app)
 
 scanner = FennScanner()
 templates_registry = TemplatesRegistry()
+template_runner = TemplateRunner()
 
 
 class _ApiBadRequest(Exception):
@@ -377,6 +381,49 @@ def api_template_pull() -> tuple[Response, int] | Response:
             "template": template_name.strip(),
             "path": str(resolved_path),
             "downloaded": True,
+        }
+    )
+
+
+@app.route("/api/templates/run", methods=["POST"])
+def api_template_run() -> tuple[Response, int] | Response:
+    """Launch a locally downloaded template as a background process."""
+    payload = request.get_json(silent=True)
+
+    if (error := check_body(payload, dict)) is not None:
+        return error
+
+    assert isinstance(payload, dict)
+
+    template_path = payload.get("path")
+
+    if (error := check_non_empty_string(template_path, "path")) is not None:
+        return error
+
+    assert isinstance(template_path, str)
+
+    resolved_path = str(Path(template_path).resolve())
+    registered_paths = {entry["path"] for entry in templates_registry.list_templates()}
+    if resolved_path not in registered_paths:
+        return (
+            template_not_registered(
+                f"{template_path} is not a locally registered template"
+            ),
+            404,
+        )
+
+    try:
+        running = template_runner.launch(Path(template_path), scanner=scanner)
+    except TemplateLaunchError as exc:
+        return template_launch_failed(exc), 502
+
+    return jsonify(
+        {
+            "run_id": running.run_id,
+            "template_path": str(running.template_path),
+            "log_dir": str(running.log_dir),
+            "pid": running.process.pid,
+            "launched": True,
         }
     )
 
