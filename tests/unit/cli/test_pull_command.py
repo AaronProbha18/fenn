@@ -1,7 +1,9 @@
+import subprocess
 import tempfile
 import zipfile
 from pathlib import Path
-from unittest.mock import Mock
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 import pytest
 import requests
@@ -12,6 +14,13 @@ from fenn.cli.pull import (
     _download_template,
     execute,
 )
+from fenn.exceptions import TemplateNotFoundError
+
+
+def _args(**kwargs):  # helper
+    defaults = {"template": "base", "path": None, "force": False}
+    defaults.update(kwargs)
+    return SimpleNamespace(**defaults)
 
 
 class TestPullCommand:
@@ -342,29 +351,101 @@ class TestPullCommand:
         assert not any((tmp_path / "dataset").iterdir())
         assert not any((tmp_path / "models").iterdir())
 
-    # def test_pull_list_templates(self, requests_mock, capsys):
-    #    """Test listing available templates with --list flag."""
-    #    args = Mock()
-    #    args.template = None
-    #    args.path = "."
-    #    args.force = False
-    #    args.list = True
-    #    # Mock GitHub API response for listing repository contents
-    #    requests_mock.get(
-    #        "https://api.github.com/repos/pyfenn/templates/contents",
-    #        status_code=200,
-    #        json=[
-    #            {"name": "base", "type": "dir"},
-    #            {"name": "advanced", "type": "dir"},
-    #            {"name": "README.md", "type": "file"},
-    #            {"name": "mlp", "type": "dir"},
-    #        ]
-    #    )
-    #    execute(args)
-    #    captured = capsys.readouterr()
-    #    assert "Available templates" in captured.out
-    #    assert "base" in captured.out
-    #    assert "advanced" in captured.out
-    #    assert "mlp" in captured.out
-    #    assert "README.md" not in captured.out  # Files should be filtered out
-    #    assert "fenn pull <template>" in captured.out
+
+class TestExecute:
+    def test_exits_1_when_no_template_name(self):
+        with patch("fenn.cli.pull.logger"):
+            with pytest.raises(SystemExit) as exc_info:
+                execute(_args(template=""))
+        assert exc_info.value.code == 1
+
+    def test_exits_1_on_file_exists_error(self, tmp_path):
+        with patch("fenn.cli.pull.pull_template", side_effect=FileExistsError("no")):
+            with patch("fenn.cli.pull.logger"):
+                with pytest.raises(SystemExit) as exc_info:
+                    execute(_args(path=str(tmp_path)))
+        assert exc_info.value.code == 1
+
+    def test_exits_1_on_template_not_found(self, tmp_path):
+        with patch(
+            "fenn.cli.pull.pull_template", side_effect=TemplateNotFoundError("x")
+        ):
+            with patch("fenn.cli.pull.logger"):
+                with pytest.raises(SystemExit) as exc_info:
+                    execute(_args(path=str(tmp_path)))
+        assert exc_info.value.code == 1
+
+    def test_exits_1_on_network_error(self, tmp_path):
+        with patch("fenn.cli.pull.pull_template", side_effect=NetworkError("x")):
+            with patch("fenn.cli.pull.logger"):
+                with pytest.raises(SystemExit) as exc_info:
+                    execute(_args(path=str(tmp_path)))
+        assert exc_info.value.code == 1
+
+    def test_exits_1_on_template_error(self, tmp_path):
+        with patch("fenn.cli.pull.pull_template", side_effect=TemplateError("x")):
+            with patch("fenn.cli.pull.logger"):
+                with pytest.raises(SystemExit) as exc_info:
+                    execute(_args(path=str(tmp_path)))
+        assert exc_info.value.code == 1
+
+    def test_uses_cwd_when_no_path(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        captured = {}
+
+        def fake_pull(name, target, force):
+            captured["target"] = target
+            return target
+
+        with patch("fenn.cli.pull.pull_template", side_effect=fake_pull):
+            with patch("fenn.cli.pull.logger"):
+                execute(_args(path=None))
+
+        assert captured["target"] == tmp_path.resolve()
+
+    def test_prompts_to_install_requirements(self, tmp_path):
+        (tmp_path / "requirements.txt").write_text("numpy\n")
+
+        with patch("fenn.cli.pull.pull_template", return_value=tmp_path):
+            with patch("fenn.cli.pull.logger"):
+                with patch("fenn.cli.pull.HAS_RICH", False):
+                    with patch("builtins.input", return_value="n"):
+                        execute(_args(path=str(tmp_path)))  # should not raise
+
+    def test_installs_requirements_on_yes(self, tmp_path):
+        (tmp_path / "requirements.txt").write_text("numpy\n")
+
+        with patch("fenn.cli.pull.pull_template", return_value=tmp_path):
+            with patch("fenn.cli.pull.logger"):
+                with patch("fenn.cli.pull.HAS_RICH", False):
+                    with patch("builtins.input", return_value="y"):
+                        with patch("fenn.cli.pull.subprocess.run") as mock_run:
+                            execute(_args(path=str(tmp_path)))
+
+        mock_run.assert_called_once()
+        cmd = mock_run.call_args[0][0]
+        assert "pip" in cmd
+        assert "install" in cmd
+
+    def test_handles_keyboard_interrupt_during_prompt(self, tmp_path):
+        (tmp_path / "requirements.txt").write_text("numpy\n")
+
+        with patch("fenn.cli.pull.pull_template", return_value=tmp_path):
+            with patch("fenn.cli.pull.logger"):
+                with patch("fenn.cli.pull.HAS_RICH", False):
+                    with patch("builtins.input", side_effect=KeyboardInterrupt):
+                        with patch("builtins.print"):
+                            execute(_args(path=str(tmp_path)))  # should not raise
+
+    def test_handles_pip_install_failure(self, tmp_path):
+        (tmp_path / "requirements.txt").write_text("numpy\n")
+
+        with patch("fenn.cli.pull.pull_template", return_value=tmp_path):
+            with patch("fenn.cli.pull.logger"):
+                with patch("fenn.cli.pull.HAS_RICH", False):
+                    with patch("builtins.input", return_value="yes"):
+                        with patch(
+                            "fenn.cli.pull.subprocess.run",
+                            side_effect=subprocess.CalledProcessError(1, "pip"),
+                        ):
+                            execute(_args(path=str(tmp_path)))  # should not raise
