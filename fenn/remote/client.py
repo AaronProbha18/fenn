@@ -6,7 +6,7 @@ import json
 import os
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator, Optional
+from typing import Any, Iterator, Optional
 
 import requests
 
@@ -142,9 +142,9 @@ class RemoteClient:
         *,
         script: str,
         max_runtime: int,
-        project: Optional[str] = None,
-        venv: Optional[dict] = None,
-        machine_class: Optional[str] = None,
+        project: str | None = None,
+        venv: dict[str, Any] | None = None,
+        machine_class: str | None = None,
     ) -> dict:
         """Upload a workspace and enqueue a job.
 
@@ -152,7 +152,7 @@ class RemoteClient:
         part plus a ``meta`` JSON form field. Returns the server response,
         e.g. ``{"job_id": ..., "credit_hold": N, "credits_remaining": N}``.
         """
-        meta = {
+        meta: dict[str, Any] = {
             "script": script,
             "max_runtime": int(max_runtime),
         }
