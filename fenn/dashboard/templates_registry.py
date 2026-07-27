@@ -26,7 +26,7 @@ def _is_pytest_temp_path(path: Path) -> bool:
     lowered_parts = [part.lower() for part in path.parts]
     has_pytest_root = any(part.startswith("pytest-of-") for part in lowered_parts)
     has_pytest_run = any(re.fullmatch(r"pytest-\d+", part) for part in lowered_parts)
-    has_pull_test = any(part.startswith("test_pull_template") for part in lowered_parts)
+    has_pull_test = any(part.startswith("test_pull") for part in lowered_parts)
     return has_pytest_root and has_pytest_run and has_pull_test
 
 

@@ -41,6 +41,7 @@ from fenn.dashboard.responses import (
 )
 from fenn.dashboard.runner import TemplateLaunchError, TemplateRunner
 from fenn.dashboard.templates_registry import TemplatesRegistry
+from fenn.dashboard.types import TemplateRunResponse, TemplatesPayload
 from fenn.dashboard.validation import (
     check_body,
     check_non_empty_string,
@@ -307,12 +308,13 @@ def api_templates() -> tuple[Response, int] | Response:
 def api_local_templates() -> Response:
     """Return the templates that have been pulled into a local directory."""
     entries = templates_registry.list_templates()
-    return jsonify(
-        {
-            "templates": entries,
-            "total": len(entries),
-        }
-    )
+    payload: TemplatesPayload = {
+        "projects": scanner.get_overview()["projects"],
+        "templates": entries,
+        "total_templates": len(entries),
+        "active_page": "templates",
+    }
+    return jsonify(payload)
 
 
 @app.route("/api/templates/pull", methods=["POST"])
@@ -417,15 +419,66 @@ def api_template_run() -> tuple[Response, int] | Response:
     except TemplateLaunchError as exc:
         return template_launch_failed(exc), 502
 
-    return jsonify(
-        {
-            "run_id": running.run_id,
-            "template_path": str(running.template_path),
-            "log_dir": str(running.log_dir),
-            "pid": running.process.pid,
-            "launched": True,
-        }
-    )
+    response: TemplateRunResponse = {
+        "run_id": running.run_id,
+        "template_path": str(running.template_path),
+        "log_dir": str(running.log_dir),
+        "pid": running.process.pid,
+        "launched": True,
+    }
+    return jsonify(response)
+
+
+@app.route("/api/templates/run/<run_id>/status")
+def api_template_run_status(run_id: str) -> tuple[Response, int] | Response:
+    """Poll launch status for a run started via /api/templates/run.
+
+    Returns one of:
+      {"status": "pending"}                                   — still starting
+      {"status": "found", "project": ..., "session_id": ...}   — session located
+      {"status": "failed", "exit_code": ..., "error": "..."}   — process died first
+    """
+    running = template_runner.get(run_id)
+    if running is None:
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "run_not_found",
+                        "message": "Unknown or expired run_id",
+                    }
+                }
+            ),
+            404,
+        )
+
+    exit_code = running.poll()
+    if exit_code is not None and exit_code != 0:
+        stderr = ""
+        try:
+            _, stderr = running.process.communicate(timeout=0.1)
+        except Exception:
+            pass
+        return jsonify(
+            {
+                "status": "failed",
+                "exit_code": exit_code,
+                "error": (stderr or "").strip()[:500],
+            }
+        )
+
+    match = scanner.find_matching_session(running.log_dir, running.started_at)
+
+    if match is not None:
+        return jsonify(
+            {
+                "status": "found",
+                "project": match["project"],
+                "session_id": match["session_id"],
+            }
+        )
+
+    return jsonify({"status": "pending"})
 
 
 @app.route("/api/session/<project_name>/<session_id>/rename", methods=["POST"])
