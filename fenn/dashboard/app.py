@@ -41,7 +41,7 @@ from fenn.dashboard.responses import (
 )
 from fenn.dashboard.runner import TemplateLaunchError, TemplateRunner
 from fenn.dashboard.templates_registry import TemplatesRegistry
-from fenn.dashboard.types import SessionData, TemplateRunResponse, TemplatesPayload
+from fenn.dashboard.types import TemplateRunResponse, TemplatesPayload
 from fenn.dashboard.validation import (
     check_body,
     check_non_empty_string,
@@ -467,19 +467,7 @@ def api_template_run_status(run_id: str) -> tuple[Response, int] | Response:
             }
         )
 
-    log_dir = running.log_dir
-    match: SessionData | None = None
-    for s in scanner.get_all_sessions(include_archived=True):
-        try:
-            file_path = Path(s["file_path"]).resolve()
-        except OSError:
-            continue
-        if not file_path.is_relative_to(log_dir):
-            continue
-        if s["file_mtime"] < running.started_at:
-            continue
-        if match is None or s["file_mtime"] > match["file_mtime"]:
-            match = s
+    match = scanner.find_matching_session(running.log_dir, running.started_at)
 
     if match is not None:
         return jsonify(

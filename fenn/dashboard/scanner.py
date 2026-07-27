@@ -417,6 +417,24 @@ class FennScanner:
                 sessions.append(session)
         return sessions
 
+    def find_matching_session(
+        self, log_dir: Path, started_at: float
+    ) -> SessionData | None:
+        """Find newest session under log_dir with mtime >= started_at."""
+        match: SessionData | None = None
+        for s in self.get_all_sessions(include_archived=True):
+            try:
+                file_path = Path(s["file_path"]).resolve()
+            except OSError:
+                continue
+            if not file_path.is_relative_to(log_dir):
+                continue
+            if s["file_mtime"] < started_at:
+                continue
+            if match is None or s["file_mtime"] > match["file_mtime"]:
+                match = s
+        return match
+
     @staticmethod
     def _build_projects_list(sessions: list[SessionData]) -> list[ProjectStats]:
         """Aggregate per-project stats from an already-loaded sessions list."""
