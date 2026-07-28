@@ -8,8 +8,8 @@ from pathlib import Path
 
 import requests
 from colorama import Fore, Style
+from whenever import Instant
 
-from fenn.cli.utils import _isoformat_utc_now
 from fenn.dashboard.templates_registry import TemplateEntry, TemplatesRegistry
 from fenn.exceptions import NetworkError, TemplateError, TemplateNotFoundError
 from fenn.logging import logger
@@ -248,7 +248,9 @@ def _register_pulled_template(template_name: str, target_dir: Path) -> None:
                 name=target_dir.name,
                 path=str(target_dir),
                 source_template=template_name,
-                pulled_at=_isoformat_utc_now(),
+                pulled_at=Instant.now()
+                .to_fixed_offset(0)
+                .format_iso(unit="microsecond"),
             )
         )
     except Exception as exc:
