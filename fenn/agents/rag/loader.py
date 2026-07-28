@@ -104,7 +104,7 @@ def _read_file(path):
 def _read_pdf(path):
     """
     Extract text from a PDF file using pypdf.
-    Requires: pip install "cofone[pdf]"  or  pip install pypdf
+    Requires: pip install "fenn[rag-pdf]"  or  pip install pypdf
     """
     try:
         import pypdf
@@ -120,7 +120,7 @@ def _read_pdf(path):
     except ImportError:
         raise ImportError(
             "[cofone] pypdf not installed.\n"
-            'Run: pip install "cofone[pdf]"  or  pip install pypdf'
+            'Run: pip install "fenn[rag-pdf]"  or  pip install pypdf'
         )
 
 
@@ -171,7 +171,7 @@ def _load_wikipedia(url):
     """
     Fetch a Wikipedia article's full text using the wikipedia package.
     Automatically detects language from the URL subdomain.
-    Requires: pip install "cofone[web]"  or  pip install wikipedia
+    Requires: pip install "fenn[rag-web]"  or  pip install wikipedia
     """
     try:
         import re
@@ -198,7 +198,7 @@ def _load_wikipedia(url):
     except ImportError:
         raise ImportError(
             "[cofone] wikipedia package not installed.\n"
-            'Run: pip install "cofone[web]"  or  pip install wikipedia'
+            'Run: pip install "fenn[rag-web]"  or  pip install wikipedia'
         )
     except Exception as e:
         raise ValueError(f"[cofone] Wikipedia error for '{url}': {e}") from e
@@ -209,7 +209,7 @@ def _load_youtube(url):
     Fetch a YouTube video's transcript/subtitles.
     Language priority: English first, then Italian, then any available.
     Auto-generated captions are supported.
-    Requires: pip install "cofone[web]"  or  pip install youtube-transcript-api
+    Requires: pip install "fenn[rag-web]"  or  pip install youtube-transcript-api
     Supports youtube-transcript-api >= 0.6.0 and >= 0.7.0 (dual fallback).
     """
     try:
@@ -251,5 +251,5 @@ def _load_youtube(url):
     except ImportError:
         raise ImportError(
             "[cofone] youtube-transcript-api not installed.\n"
-            'Run: pip install "cofone[web]"  or  pip install youtube-transcript-api'
+            'Run: pip install "fenn[rag-web]"  or  pip install youtube-transcript-api'
         )

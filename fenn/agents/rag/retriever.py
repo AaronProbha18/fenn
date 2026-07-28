@@ -135,7 +135,7 @@ class Retriever:
         except ImportError:
             raise ImportError(
                 "[cofone] sentence-transformers not installed.\n"
-                'Run: pip install "cofone[faiss]"  or  pip install sentence-transformers'
+                'Run: pip install "fenn[rag-faiss]"  or  pip install sentence-transformers'
             )
 
     def _embed_openai_compat(self, texts):
@@ -279,7 +279,7 @@ class Retriever:
 
         if sys.modules.get("faiss") is None:
             raise ImportError(
-                '[cofone] faiss-cpu not installed.\nRun: pip install "cofone[faiss]"'
+                '[cofone] faiss-cpu not installed.\nRun: pip install "fenn[rag-faiss]"'
             )
         mod = sys.modules[__name__]
         faiss_mod = getattr(mod, "faiss", None)
@@ -290,7 +290,7 @@ class Retriever:
                 setattr(mod, "faiss", faiss_mod)
             except ImportError:
                 raise ImportError(
-                    '[cofone] faiss-cpu not installed.\nRun: pip install "cofone[faiss]"'
+                    '[cofone] faiss-cpu not installed.\nRun: pip install "fenn[rag-faiss]"'
                 )
         return faiss_mod
 

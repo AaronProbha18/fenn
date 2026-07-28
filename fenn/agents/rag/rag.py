@@ -42,7 +42,7 @@ class RAG:
 
     faiss : bool, optional
         If True, uses FAISS semantic vector search instead of BM25 keyword
-        search. Requires `pip install "cofone[faiss]"`. Default: False.
+        search. Requires `pip install "fenn[rag-faiss]"`. Default: False.
 
     embedding_provider : str, optional
         Provider for text embeddings (used only when faiss=True).
