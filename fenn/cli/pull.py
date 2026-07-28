@@ -4,12 +4,12 @@ import subprocess
 import sys
 import tempfile
 import zipfile
-from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
 from colorama import Fore, Style
 
+from fenn.cli.utils import _isoformat_utc_now
 from fenn.dashboard.templates_registry import TemplateEntry, TemplatesRegistry
 from fenn.exceptions import NetworkError, TemplateError, TemplateNotFoundError
 from fenn.logging import logger
@@ -248,7 +248,7 @@ def _register_pulled_template(template_name: str, target_dir: Path) -> None:
                 name=target_dir.name,
                 path=str(target_dir),
                 source_template=template_name,
-                pulled_at=datetime.now(timezone.utc).isoformat(),
+                pulled_at=_isoformat_utc_now(),
             )
         )
     except Exception as exc:
