@@ -37,6 +37,8 @@ https://github.com/sponsors/blkdmr
 
 - **Template Ready**: Built-in support for reproducible, shareable experiment templates.
 
+- **Live Dashboard**: Browse, filter, and rename experiment sessions in a local web UI, and launch any pulled template with one click - straight to its live session view.
+
 
 ## Quickstart
 
@@ -219,7 +221,7 @@ A quick reference for all available fenn CLI commands.
 
 | Command | Description |
 |---|---|
-| `fenn dashboard` | Launch the local log-browser web UI |
+| `fenn dashboard` | Launch the local web UI to browse and manage sessions, and to view and run locally pulled templates |
 | `fenn grid <path>` | By setting grid/train section in template, you can run a Fenn project several times, with all possible grid hyperparams. Also, it is possible to specify path to main.py file (e.g. my_temp/main.py) |
 | `fenn list` | List all available templates from [`pyfenn/templates`](https://github.com/pyfenn/templates) |
 | `fenn pull <template>` | Pull a template into the current directory |
