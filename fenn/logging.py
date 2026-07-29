@@ -75,6 +75,17 @@ class XmlMixin:
                 f'level="{self._escape(record.levelname)}">{clean_message}</entry>\n'
             )
 
+    def _write_metric(
+        self, name: str, value: float, step: int, file_path: Path
+    ) -> None:
+        ts = _now_local()
+        with open(file_path, "a", encoding="utf-8") as f:
+            f.write(
+                f'  <metric name="{self._escape(name)}" step="{int(step)}" '
+                f'value="{self._escape(str(value))}" '
+                f'ts="{ts.format(_SPACE_SEP_PATTERN)}" />\n'
+            )
+
     def _write_stop_info(self, started_at: PlainDateTime) -> None:
         ended_at = _now_local()
         ended = ended_at.format(_SPACE_SEP_PATTERN)
@@ -171,6 +182,14 @@ class FennLogger(XmlMixin, logging.LoggerAdapter):
     def write_config(self, args: dict[str, Any], config_file: Path) -> None:
         self.handler.configure(args, self._started_at)
         self._create_config(args=args, config_file=config_file)
+
+    def log_metric(self, name: str, value: float, step: int) -> None:
+        """Appends a structured `<metric>` entry to the run's `.fn` file.
+
+        `name` accepts any string and is persisted as-is (e.g. "train_loss",
+        "val_loss", "acc" - the values fenn's built-in trainers emit).
+        """
+        self._write_metric(name=name, value=value, step=step, file_path=self.fn_file)
 
     def close(self) -> None:
         self._write_stop_info(started_at=self._started_at)
