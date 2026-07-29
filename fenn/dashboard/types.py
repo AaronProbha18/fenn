@@ -14,6 +14,15 @@ class LogEntry(TypedDict):
     message: str
 
 
+class MetricPoint(TypedDict):
+    """Single XML <metric> entry from a Fenn session"""
+
+    name: str
+    step: int
+    value: float
+    ts: str
+
+
 class ProjectStats(TypedDict):
     """Aggregated statistics for a project."""
 
@@ -40,6 +49,7 @@ class SessionData(TypedDict):
 
     config: Dict[str, str]
     entries: List[LogEntry]
+    metrics: List[MetricPoint]
 
     entry_count: int
     warning_count: int
@@ -121,6 +131,7 @@ class SessionPagePayload(TypedDict):
 
     config: Dict[str, str]
     entries: List[LogEntry]
+    metrics: List[MetricPoint]
 
     entry_count: int
     warning_count: int
