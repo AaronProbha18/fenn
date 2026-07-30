@@ -189,8 +189,7 @@ class FennLogger(XmlMixin, logging.LoggerAdapter):
         `name` accepts any string and is persisted as-is (e.g. "train_loss",
         "val_loss", "acc" - the values fenn's built-in trainers emit).
         """
-        fn_file = getattr(self, "fn_file", None)
-        if fn_file is None:
+        if getattr(self, "fn_file", None) is None:
             return
         self._write_metric(name=name, value=value, step=step, file_path=self.fn_file)
 
