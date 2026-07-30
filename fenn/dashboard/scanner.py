@@ -11,6 +11,7 @@ from whenever import PlainDateTime
 
 from fenn.dashboard.types import (
     LogEntry,
+    MetricPoint,
     OverviewPayload,
     ProjectPayload,
     ProjectStats,
@@ -361,6 +362,8 @@ class FennScanner:
                 )
             )
 
+        metrics = FennScanner._get_metrics(root)
+
         # Timing from <meta>
         ended: str | None = None
         duration_s: int | None = None
@@ -385,6 +388,7 @@ class FennScanner:
             status=status,
             config=config,
             entries=entries,
+            metrics=metrics,
             entry_count=len(entries),
             warning_count=warnings,
             exception_count=exceptions,
@@ -392,6 +396,28 @@ class FennScanner:
             file_size=stat.st_size,
             file_mtime=stat.st_mtime,
         )
+
+    @staticmethod
+    def _get_metrics(root: ElementTree.Element) -> list[MetricPoint]:
+        """Parse <metric> elements into MetricPoint entries.
+
+        Malformed step/value attributes are skipped rather than raising,
+        mirroring the tolerant handling used for duration_s elsewhere.
+        """
+        metrics = []
+        for metric in root.findall("metric"):
+            name = metric.get("name", "")
+            if not name:
+                continue
+            try:
+                step = int(metric.get("step", ""))
+                value = float(metric.get("value", ""))
+            except (ValueError, TypeError):
+                continue
+            metrics.append(
+                MetricPoint(name=name, step=step, value=value, ts=metric.get("ts", ""))
+            )
+        return metrics
 
     @staticmethod
     def _refresh_running_status(parsed: SessionData, mtime: float) -> SessionData:
@@ -609,12 +635,17 @@ class FennScanner:
 
         total = len(sessions)
         items = sessions[offset : offset + limit]
-        # Strip the heavy 'entries' list and 'config' from the listing payload — clients
-        # that need per-entry data fetch the single-session endpoint.
+        # Strip the heavy 'entries' list, 'config', and 'metrics' from the listing
+        # payload — clients that need per-entry/metric data fetch the single-session
+        # endpoint.
         slim = [
             cast(
                 SessionListItem,
-                {k: v for k, v in s.items() if k not in ("entries", "config")},
+                {
+                    k: v
+                    for k, v in s.items()
+                    if k not in ("entries", "config", "metrics")
+                },
             )
             for s in items
         ]

@@ -152,6 +152,7 @@ class RegressionTrainer(Trainer):
                 raise ValueError("train_loader produced 0 batches; cannot train.")
 
             state.train_loss = total_loss / n_batches
+            logger.log_metric("train_loss", state.train_loss, step=epoch)
 
             progress.update(
                 epoch_task,  # pyright: ignore[reportArgumentType]
@@ -220,6 +221,8 @@ class RegressionTrainer(Trainer):
 
                 state.val_loss = val_total_loss / val_n_batches
                 state.acc = r2_score(val_labels, val_predictions)
+                logger.log_metric("val_loss", state.val_loss, step=epoch)
+                logger.log_metric("acc", state.acc, step=epoch)
 
                 progress.update(
                     epoch_task,  # pyright: ignore[reportArgumentType]

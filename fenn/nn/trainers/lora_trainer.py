@@ -241,6 +241,7 @@ class LoRATrainer(Trainer):
                 raise ValueError("train_loader produced 0 batches; cannot train.")
 
             state.train_loss = total_loss / n_batches
+            logger.log_metric("train_loss", state.train_loss, step=epoch)
 
             progress.update(
                 epoch_task,  # pyright: ignore[reportArgumentType]
@@ -296,10 +297,12 @@ class LoRATrainer(Trainer):
                     raise ValueError("val_loader produced 0 batches; cannot validate.")
 
                 state.val_loss = val_total_loss / val_n_batches
+                logger.log_metric("val_loss", state.val_loss, step=epoch)
 
                 if all_preds and all_labels:
                     val_acc = accuracy_score(all_labels, all_preds)
                     state.acc = val_acc
+                    logger.log_metric("acc", state.acc, step=epoch)
                     progress.console.print(
                         f"[bold blue]Epoch {epoch}/{epochs}[/bold blue] "
                         f"Train Loss: {state.train_loss:.4f} | "
