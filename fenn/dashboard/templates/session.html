@@ -20,6 +20,9 @@
   data-archived="{{ 'true' if archived else 'false' }}"
       style="display:none;"></span>
 
+<!-- Hidden metrics data for the Graphs tab -->
+<script type="application/json" id="session-metrics-data">{{ metrics | tojson }}</script>
+
 <!-- Header -->
 <div class="page-header">
   <span class="page-tag" id="session-display-name-header">{{ display_name or '' }}</span>
@@ -91,57 +94,135 @@
   </div>
 </div>
 
-<!-- Config -->
-{% if config %}
-<div class="card" style="margin-bottom:20px;">
-  <div class="card-header">
-    <span class="card-title">⚙ Configuration</span>
-    <button class="collapsible-btn"
-            data-target="config-body"
-            aria-expanded="true">
-      <span class="arrow">▼</span> collapse
-    </button>
+<!-- Tab navigation -->
+<div class="tab-nav" role="tablist">
+  <button type="button"
+          class="tab-nav-item active"
+          data-tab="logs"
+          role="tab"
+          aria-selected="true">Logs</button>
+  <button type="button"
+          class="tab-nav-item"
+          data-tab="graphs"
+          role="tab"
+          aria-selected="false">Graphs</button>
+</div>
+
+<div id="tab-panel-logs" class="tab-panel active">
+
+  <!-- Config -->
+  {% if config %}
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header">
+      <span class="card-title">⚙ Configuration</span>
+      <button class="collapsible-btn"
+              data-target="config-body"
+              aria-expanded="true">
+        <span class="arrow">▼</span> collapse
+      </button>
+    </div>
+    <div id="config-body" class="collapsible-body">
+      <div class="card-body">
+        <div class="config-grid">
+          {% for key, val in config.items() %}
+          <div class="config-item">
+            <span class="config-key">{{ key }}</span>
+            <span class="config-sep">=</span>
+            <span class="config-val">{{ val }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
   </div>
-  <div id="config-body" class="collapsible-body">
-    <div class="card-body">
-      <div class="config-grid">
-        {% for key, val in config.items() %}
-        <div class="config-item">
-          <span class="config-key">{{ key }}</span>
-          <span class="config-sep">=</span>
-          <span class="config-val">{{ val }}</span>
+  {% endif %}
+
+  <!-- Log entries -->
+  <div class="card">
+    <div class="log-entries">
+      {% if entries %}
+        {% for entry in entries %}
+        <div class="log-entry level-{{ entry.level }} kind-{{ entry.kind }}"
+             data-level="{{ entry.level }}"
+             data-kind="{{ entry.kind }}">
+          <span class="log-ts">{{ entry.ts }}</span>
+          <span class="log-kind">
+            <span class="badge badge-{{ entry.kind }}" style="font-size:10px;">{{ entry.kind }}</span>
+          </span>
+          <span class="log-level">
+            <span class="badge badge-{{ entry.level }}" style="font-size:10px;">{{ entry.level }}</span>
+          </span>
+          <span class="log-msg">{{ entry.message }}</span>
         </div>
         {% endfor %}
+      {% else %}
+      <div class="empty" style="padding:40px 20px;">
+        <div class="empty-title">No log entries</div>
+        <div class="empty-desc">This session has no recorded entries yet.</div>
       </div>
+      {% endif %}
     </div>
   </div>
-</div>
-{% endif %}
 
-<!-- Log entries -->
-<div class="card">
-  <div class="log-entries">
-    {% if entries %}
-      {% for entry in entries %}
-      <div class="log-entry level-{{ entry.level }} kind-{{ entry.kind }}"
-           data-level="{{ entry.level }}"
-           data-kind="{{ entry.kind }}">
-        <span class="log-ts">{{ entry.ts }}</span>
-        <span class="log-kind">
-          <span class="badge badge-{{ entry.kind }}" style="font-size:10px;">{{ entry.kind }}</span>
-        </span>
-        <span class="log-level">
-          <span class="badge badge-{{ entry.level }}" style="font-size:10px;">{{ entry.level }}</span>
-        </span>
-        <span class="log-msg">{{ entry.message }}</span>
+</div>
+
+<div id="tab-panel-graphs" class="tab-panel">
+  <div class="chart-grid">
+
+    <div class="card chart-card" data-metric="train_loss" data-color="--accent">
+      <div class="card-header">
+        <span class="card-title">Train Loss</span>
       </div>
-      {% endfor %}
-    {% else %}
-    <div class="empty" style="padding:40px 20px;">
-      <div class="empty-title">No log entries</div>
-      <div class="empty-desc">This session has no recorded entries yet.</div>
+      <div class="card-body chart-card-body">
+        <svg class="chart-svg" viewBox="0 0 600 220" preserveAspectRatio="none" style="display:none;"></svg>
+        <div class="empty chart-empty">
+          {% if status == 'running' %}
+          <div class="empty-title">Training in progress</div>
+          <div class="empty-desc">Graphs will appear once this session completes.</div>
+          {% else %}
+          <div class="empty-title">No data</div>
+          <div class="empty-desc">No train_loss metrics were recorded for this session.</div>
+          {% endif %}
+        </div>
+      </div>
     </div>
-    {% endif %}
+
+    <div class="card chart-card" data-metric="val_loss" data-color="--warning">
+      <div class="card-header">
+        <span class="card-title">Val Loss</span>
+      </div>
+      <div class="card-body chart-card-body">
+        <svg class="chart-svg" viewBox="0 0 600 220" preserveAspectRatio="none" style="display:none;"></svg>
+        <div class="empty chart-empty">
+          {% if status == 'running' %}
+          <div class="empty-title">Training in progress</div>
+          <div class="empty-desc">Graphs will appear once this session completes.</div>
+          {% else %}
+          <div class="empty-title">No data</div>
+          <div class="empty-desc">No val_loss metrics were recorded for this session.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card chart-card" data-metric="acc" data-color="--success">
+      <div class="card-header">
+        <span class="card-title">Accuracy</span>
+      </div>
+      <div class="card-body chart-card-body">
+        <svg class="chart-svg" viewBox="0 0 600 220" preserveAspectRatio="none" style="display:none;"></svg>
+        <div class="empty chart-empty">
+          {% if status == 'running' %}
+          <div class="empty-title">Training in progress</div>
+          <div class="empty-desc">Graphs will appear once this session completes.</div>
+          {% else %}
+          <div class="empty-title">No data</div>
+          <div class="empty-desc">No acc metrics were recorded for this session.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
