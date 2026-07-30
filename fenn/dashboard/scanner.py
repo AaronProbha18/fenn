@@ -362,24 +362,7 @@ class FennScanner:
                 )
             )
 
-        metrics: list[MetricPoint] = []
-        for metric in root.findall("metric"):
-            name = metric.get("name", "")
-            if not name:
-                continue
-            try:
-                step = int(metric.get("step", ""))
-                value = float(metric.get("value", ""))
-            except (ValueError, TypeError):
-                continue
-            metrics.append(
-                MetricPoint(
-                    name=name,
-                    step=step,
-                    value=value,
-                    ts=metric.get("ts", ""),
-                )
-            )
+        metrics = FennScanner._get_metrics(root)
 
         # Timing from <meta>
         ended: str | None = None
@@ -413,6 +396,28 @@ class FennScanner:
             file_size=stat.st_size,
             file_mtime=stat.st_mtime,
         )
+
+    @staticmethod
+    def _get_metrics(root: ElementTree.Element) -> list[MetricPoint]:
+        """Parse <metric> elements into MetricPoint entries.
+
+        Malformed step/value attributes are skipped rather than raising,
+        mirroring the tolerant handling used for duration_s elsewhere.
+        """
+        metrics = []
+        for metric in root.findall("metric"):
+            name = metric.get("name", "")
+            if not name:
+                continue
+            try:
+                step = int(metric.get("step", ""))
+                value = float(metric.get("value", ""))
+            except (ValueError, TypeError):
+                continue
+            metrics.append(
+                MetricPoint(name=name, step=step, value=value, ts=metric.get("ts", ""))
+            )
+        return metrics
 
     @staticmethod
     def _refresh_running_status(parsed: SessionData, mtime: float) -> SessionData:
