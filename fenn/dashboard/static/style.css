@@ -558,6 +558,54 @@ mark, .log-msg .hl, .log-msg .highlight {
 /* Utility — toggled by app.js to hide filtered-out rows. */
 .log-entry.hidden { display: none; }
 
+/* ── Session tabs (Logs / Graphs) ──────────────────────────────────── */
+.tab-nav {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+.tab-nav-item {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-mute);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: .03em;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.tab-nav-item:hover { color: var(--text); }
+.tab-nav-item.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Graphs tab ────────────────────────────────────────────────────── */
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+.chart-card-body { position: relative; }
+.chart-svg {
+  width: 100%;
+  height: 220px;
+  display: block;
+}
+/* Nested inside .card already — drop the dashed box/background so it
+   doesn't double up with the surrounding card. */
+.chart-card .empty {
+  padding: 40px 20px;
+  border: none;
+  background: transparent;
+}
+
 /* ── Empty / 404 ───────────────────────────────────────────────────── */
 .empty {
   text-align: center;
@@ -966,5 +1014,8 @@ mark, .log-msg .hl, .log-msg .highlight {
   }
   .stat-value {
     font-size: 20px;
+  }
+  .chart-svg {
+    height: 160px;
   }
 }

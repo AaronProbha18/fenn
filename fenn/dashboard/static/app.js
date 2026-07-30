@@ -537,6 +537,120 @@
     });
   });
 
+  // ── Session tabs (Logs / Graphs) ────────────────────────────────────────── //
+
+  const tabNavItems = document.querySelectorAll(".tab-nav-item");
+  if (tabNavItems.length > 0) {
+    tabNavItems.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tab = btn.dataset.tab;
+        if (!tab) return;
+        tabNavItems.forEach((b) => {
+          const active = b === btn;
+          b.classList.toggle("active", active);
+          b.setAttribute("aria-selected", String(active));
+        });
+        document.querySelectorAll(".tab-panel").forEach((panel) => {
+          panel.classList.toggle("active", panel.id === `tab-panel-${tab}`);
+        });
+      });
+    });
+  }
+
+  // Renders a simple SVG line chart (axis baseline + polyline) into svgEl.
+  // `points` is an array of {step, value} objects; `colorVar` is a CSS
+  // custom property name (e.g. "--accent") to stroke the line with.
+  function renderLineChart(svgEl, points, colorVar) {
+    if (!svgEl || !points || points.length === 0) return;
+
+    const viewBox = svgEl.viewBox && svgEl.viewBox.baseVal;
+    const width = viewBox && viewBox.width ? viewBox.width : 600;
+    const height = viewBox && viewBox.height ? viewBox.height : 220;
+    const padding = 24;
+
+    const steps = points.map((p) => p.step);
+    const values = points.map((p) => p.value);
+    const minStep = Math.min(...steps);
+    const maxStep = Math.max(...steps);
+    const minVal = Math.min(...values);
+    const maxVal = Math.max(...values);
+    const stepRange = maxStep - minStep || 1;
+    const valRange = maxVal - minVal || 1;
+
+    const xFor = (s) => padding + ((s - minStep) / stepRange) * (width - padding * 2);
+    const yFor = (v) => height - padding - ((v - minVal) / valRange) * (height - padding * 2);
+
+    while (svgEl.firstChild) svgEl.removeChild(svgEl.firstChild);
+
+    const ns = "http://www.w3.org/2000/svg";
+
+    // Baseline axis
+    const axis = document.createElementNS(ns, "line");
+    axis.setAttribute("x1", String(padding));
+    axis.setAttribute("y1", String(height - padding));
+    axis.setAttribute("x2", String(width - padding));
+    axis.setAttribute("y2", String(height - padding));
+    axis.style.stroke = "var(--border)";
+    axis.setAttribute("stroke-width", "1");
+    svgEl.appendChild(axis);
+
+    // Line
+    const polyline = document.createElementNS(ns, "polyline");
+    const coords = points.map((p) => `${xFor(p.step)},${yFor(p.value)}`).join(" ");
+    polyline.setAttribute("points", coords);
+    polyline.setAttribute("fill", "none");
+    polyline.style.stroke = `var(${colorVar || "--accent"})`;
+    polyline.setAttribute("stroke-width", "2");
+    polyline.setAttribute("vector-effect", "non-scaling-stroke");
+    svgEl.appendChild(polyline);
+  }
+
+  // Reads the hidden #session-metrics-data JSON blob, groups points by
+  // metric name, and populates (or hides) each .chart-card accordingly.
+  // Runs once on page load — the "graphs render once status leaves running"
+  // requirement is satisfied by the existing refresh()'s location.reload(),
+  // which re-renders this template (and this script) fresh with updated data.
+  function renderSessionGraphs() {
+    const dataEl = document.getElementById("session-metrics-data");
+    if (!dataEl) return;
+
+    let metrics = [];
+    try {
+      metrics = JSON.parse(dataEl.textContent || "[]");
+    } catch (_err) {
+      metrics = [];
+    }
+
+    const grouped = {};
+    metrics.forEach((m) => {
+      if (!grouped[m.name]) grouped[m.name] = [];
+      grouped[m.name].push(m);
+    });
+    Object.keys(grouped).forEach((name) => {
+      grouped[name].sort((a, b) => a.step - b.step);
+    });
+
+    document.querySelectorAll(".chart-card").forEach((card) => {
+      const metricName = card.dataset.metric;
+      const points = grouped[metricName] || [];
+      const svgEl = card.querySelector(".chart-svg");
+      const emptyEl = card.querySelector(".chart-empty");
+
+      if (points.length > 0) {
+        if (emptyEl) emptyEl.style.display = "none";
+        if (svgEl) {
+          svgEl.style.display = "";
+          renderLineChart(svgEl, points, card.dataset.color);
+        }
+      } else {
+        if (emptyEl) emptyEl.style.display = "";
+        if (svgEl) svgEl.style.display = "none";
+      }
+    });
+  }
+
+  renderSessionGraphs();
+
   // ── Auto-refresh for running sessions ──────────────────────────────────── //
 
   const sessionStatus = document.getElementById("session-status");
@@ -586,6 +700,8 @@
 
           // Status changed (e.g. running → completed/crashed) — full reload
           // because the header badge and meta row need server-side re-render.
+          // This also naturally re-renders the Graphs tab with the now-complete
+          // metrics, since renderSessionGraphs() runs again on the fresh page.
           if (data.status !== "running") {
             location.reload();
             return;
