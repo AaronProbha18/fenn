@@ -37,7 +37,7 @@ https://github.com/sponsors/blkdmr
 
 - **Template Ready**: Built-in support for reproducible, shareable experiment templates.
 
-- **Live Dashboard**: Browse, filter, and rename experiment sessions in a local web UI, and launch any pulled template with one click - straight to its live session view.
+- **Live Dashboard**: Browse, filter, and rename experiment sessions in a local web UI, view Train Loss / Val Loss / Accuracy curves for each session, and launch any pulled template with one click - straight to its live session view.
 
 
 ## Quickstart
@@ -215,13 +215,15 @@ def main(args):
     preds = trainer.predict(test_loader)
 ```
 
+Beyond free-text logs, fenn supports structured, numeric metric logging via `logger.log_metric(name, value, step)`. Each call appends a `<metric>` entry to the session's `.fn` file, which the [dashboard](#cli-reference)'s **Graphs** tab reads and renders as a line chart.
+
 ## CLI Reference
 
 A quick reference for all available fenn CLI commands.
 
 | Command | Description |
 |---|---|
-| `fenn dashboard` | Launch the local web UI to browse and manage sessions, and to view and run locally pulled templates |
+| `fenn dashboard` | Launch the local web UI to browse and manage sessions, view metric curves, and to view and run locally pulled templates |
 | `fenn grid <path>` | By setting grid/train section in template, you can run a Fenn project several times, with all possible grid hyperparams. Also, it is possible to specify path to main.py file (e.g. my_temp/main.py) |
 | `fenn list` | List all available templates from [`pyfenn/templates`](https://github.com/pyfenn/templates) |
 | `fenn pull <template>` | Pull a template into the current directory |
