@@ -24,6 +24,17 @@ _FN_TMPL = """\
 </fenn-log>
 """
 
+_FN_WITH_METRICS_TMPL = """\
+<?xml version="1.0" encoding="utf-8"?>
+<fenn-log project="{project}" session_id="{sid}" started="{started}">
+  <metric name="train_loss" step="0" value="0.9" ts="{started}" />
+  <metric name="train_loss" step="1" value="0.5" ts="{started}" />
+  <metric name="val_loss" step="1" value="0.6" ts="{started}" />
+  <metric name="acc" step="1" value="0.83" ts="{started}" />
+  <meta ended="{ended}" duration_s="{dur}" status="{status}" />
+</fenn-log>
+"""
+
 _RUNNING_TMPL = """\
 <?xml version="1.0" encoding="utf-8"?>
 <fenn-log project="{project}" session_id="{sid}" started="{started}">
@@ -114,6 +125,53 @@ def client_no_auth(scanner_with_sessions, monkeypatch):
     app_module.scanner = original
 
 
+@pytest.fixture()
+def scanner_with_metrics(tmp_path, monkeypatch):
+    """FennScanner with one session carrying <metric> nodes and one
+    metric-less session (for backward-compatibility checks)."""
+    _write(
+        tmp_path / "m1.fn",
+        _FN_WITH_METRICS_TMPL.format(
+            project="metrics-proj",
+            sid="m1",
+            started="2026-05-21 07:00:00",
+            ended="2026-05-21 07:00:10",
+            dur=10,
+            status="completed",
+        ),
+    )
+    _write(
+        tmp_path / "m2.fn",
+        _FN_TMPL.format(
+            project="metrics-proj",
+            sid="m2",
+            started="2026-05-21 07:05:00",
+            ended="2026-05-21 07:05:10",
+            dur=10,
+            status="completed",
+        ),
+    )
+    monkeypatch.setenv(
+        "FENN_DASHBOARD_OVERRIDES_PATH", str(tmp_path / "dashboard_overrides.json")
+    )
+    return FennScanner(extra_dirs=[str(tmp_path)])
+
+
+@pytest.fixture()
+def metrics_client(scanner_with_metrics):
+    """Flask test client wired to the metrics scanner fixture."""
+    import fenn.dashboard.app as app_module
+
+    original = app_module.scanner
+    app_module.scanner = scanner_with_metrics
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        with c.session_transaction() as sess:
+            sess["user"] = {"email": "test@example.com"}
+        yield c
+    app_module.scanner = original
+
+
 # ---------------------------------------------------------------------------
 # Response shape
 # ---------------------------------------------------------------------------
@@ -150,6 +208,117 @@ class TestApiSessionsShape:
         resp = client.get("/api/sessions")
         data = resp.get_json()
         assert data["offset"] == 0
+
+
+# ---------------------------------------------------------------------------
+# Metric parsing, API shape, and backward compatibility
+# ---------------------------------------------------------------------------
+
+
+class TestApiSessionMetrics:
+    """<metric> parsing, API response shape, and backward compatibility for
+    sessions with no metric data."""
+
+    def test_scanner_parses_metric_elements(self, scanner_with_metrics):
+        """A session with <metric> nodes must parse into SessionData.metrics
+        with the correct count and names."""
+        session = scanner_with_metrics.get_session("metrics-proj", "m1")
+        assert session is not None
+        assert len(session["metrics"]) == 4
+        assert {m["name"] for m in session["metrics"]} == {
+            "train_loss",
+            "val_loss",
+            "acc",
+        }
+
+    def test_metric_point_fields_have_correct_types_and_values(
+        self, scanner_with_metrics
+    ):
+        """step must parse as int, value as float, in emission order."""
+        session = scanner_with_metrics.get_session("metrics-proj", "m1")
+        train_loss = sorted(
+            (m for m in session["metrics"] if m["name"] == "train_loss"),
+            key=lambda m: m["step"],
+        )
+        assert [m["step"] for m in train_loss] == [0, 1]
+        assert [m["value"] for m in train_loss] == [0.9, 0.5]
+        assert isinstance(train_loss[0]["step"], int)
+        assert isinstance(train_loss[0]["value"], float)
+
+    def test_session_without_metrics_returns_empty_list(self, scanner_with_metrics):
+        """Backward compatibility: a .fn file with no <metric> elements
+        must still parse, with metrics == []."""
+        session = scanner_with_metrics.get_session("metrics-proj", "m2")
+        assert session is not None
+        assert session["metrics"] == []
+
+    def test_metric_missing_name_is_skipped(self, tmp_path, monkeypatch):
+        """A <metric> element with no name attribute must be dropped,
+        not raise."""
+        _write(
+            tmp_path / "no_name.fn",
+            '<?xml version="1.0" encoding="utf-8"?>\n'
+            '<fenn-log project="p" session_id="no_name" started="2026-05-21 07:00:00">\n'
+            '  <metric step="0" value="0.5" ts="2026-05-21 07:00:00" />\n'
+            '  <meta ended="2026-05-21 07:00:10" duration_s="10" status="completed" />\n'
+            "</fenn-log>\n",
+        )
+        monkeypatch.setenv(
+            "FENN_DASHBOARD_OVERRIDES_PATH", str(tmp_path / "dashboard_overrides.json")
+        )
+        scanner = FennScanner(extra_dirs=[str(tmp_path)])
+        session = scanner.get_session("p", "no_name")
+        assert session is not None
+        assert session["metrics"] == []
+
+    def test_metric_with_malformed_step_or_value_is_skipped(
+        self, tmp_path, monkeypatch
+    ):
+        """Non-numeric step/value attributes must be skipped individually
+        rather than failing the whole parse, mirroring duration_s handling."""
+        _write(
+            tmp_path / "malformed.fn",
+            '<?xml version="1.0" encoding="utf-8"?>\n'
+            '<fenn-log project="p" session_id="malformed" started="2026-05-21 07:00:00">\n'
+            '  <metric name="train_loss" step="not-a-number" value="0.5" ts="t" />\n'
+            '  <metric name="val_loss" step="1" value="not-a-float" ts="t" />\n'
+            '  <metric name="acc" step="1" value="0.9" ts="t" />\n'
+            '  <meta ended="2026-05-21 07:00:10" duration_s="10" status="completed" />\n'
+            "</fenn-log>\n",
+        )
+        monkeypatch.setenv(
+            "FENN_DASHBOARD_OVERRIDES_PATH", str(tmp_path / "dashboard_overrides.json")
+        )
+        scanner = FennScanner(extra_dirs=[str(tmp_path)])
+        session = scanner.get_session("p", "malformed")
+        assert session is not None
+        assert len(session["metrics"]) == 1
+        assert session["metrics"][0]["name"] == "acc"
+
+    def test_api_session_detail_includes_metrics(self, metrics_client):
+        """GET /api/session/<project>/<id> must include the full metrics list."""
+        resp = metrics_client.get("/api/session/metrics-proj/m1")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "metrics" in data
+        assert len(data["metrics"]) == 4
+
+    def test_api_session_detail_metrics_empty_for_metric_less_session(
+        self, metrics_client
+    ):
+        resp = metrics_client.get("/api/session/metrics-proj/m2")
+        assert resp.status_code == 200
+        assert resp.get_json()["metrics"] == []
+
+    def test_api_sessions_listing_omits_metrics_key(self, metrics_client):
+        """/api/sessions must strip 'metrics' from every item, same as
+        'entries' and 'config' (test_items_omit_entries above)."""
+        resp = metrics_client.get("/api/sessions?project=metrics-proj")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["total"] == 2
+        for item in data["items"]:
+            assert "metrics" not in item
 
 
 # ---------------------------------------------------------------------------
