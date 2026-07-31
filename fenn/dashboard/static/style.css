@@ -1019,3 +1019,79 @@ mark, .log-msg .hl, .log-msg .highlight {
     height: 160px;
   }
 }
+
+/* ── Upload form ───────────────────────────────────────────────────── */
+.upload-card .card-body { padding: 24px; }
+
+.upload-form { max-width: 480px; }
+
+.form-group { margin-bottom: 20px; }
+.form-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-fade);
+  margin-bottom: 8px;
+}
+
+.file-input-wrap {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  background: var(--bg);
+  transition: border-color .15s;
+}
+.file-input-wrap:has(.file-input:focus) {
+  border-color: var(--accent);
+}
+
+.form-control.file-input {
+  width: 100%;
+  color: var(--text-mute);
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+.form-control.file-input::file-selector-button {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  margin-right: 12px;
+  transition: border-color .15s, color .15s;
+}
+.form-control.file-input::file-selector-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.form-help {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-fade);
+}
+
+.upload-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+.upload-actions .btn-primary {
+  padding: 8px 20px;
+}
+
+.upload-status {
+  margin-top: 16px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-mute);
+}
