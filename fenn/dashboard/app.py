@@ -428,6 +428,25 @@ def session_view(project_name: str, session_id: str) -> str:
     return render_template("session.html", **data)
 
 
+@app.route(
+    "/session/<project_name>/<session_id>/metric/<metric_name>",
+    endpoint="session_metric_detail",
+)
+def session_metric_detail(project_name: str, session_id: str, metric_name: str) -> str:
+    data = scanner.get_session(project_name, session_id)
+    if data is None:
+        abort(404)
+    points = [m for m in data["metrics"] if m["name"] == metric_name]
+    if not points:
+        abort(404)
+    return render_template(
+        "session_metric_detail.html",
+        **data,
+        metric_name=metric_name,
+        metric_points=points,
+    )
+
+
 @app.route("/templates")
 def templates_page() -> str:
     """Return the local templates registry page, listing all templates that have been pulled into a local directory."""
