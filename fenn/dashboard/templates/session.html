@@ -172,6 +172,8 @@
     <div class="card chart-card" data-metric="train_loss" data-color="--accent">
       <div class="card-header">
         <span class="card-title">Train Loss</span>
+        <a href="{{ url_for('session_metric_detail', project_name=project, session_id=session_id, metric_name='train_loss') }}"
+           class="btn btn-sm">View details</a>
       </div>
       <div class="card-body chart-card-body">
         <svg class="chart-svg" viewBox="0 0 600 220" preserveAspectRatio="none" style="display:none;"></svg>
@@ -190,6 +192,8 @@
     <div class="card chart-card" data-metric="val_loss" data-color="--warning">
       <div class="card-header">
         <span class="card-title">Val Loss</span>
+        <a href="{{ url_for('session_metric_detail', project_name=project, session_id=session_id, metric_name='val_loss') }}"
+           class="btn btn-sm">View details</a>
       </div>
       <div class="card-body chart-card-body">
         <svg class="chart-svg" viewBox="0 0 600 220" preserveAspectRatio="none" style="display:none;"></svg>
@@ -208,6 +212,8 @@
     <div class="card chart-card" data-metric="acc" data-color="--success">
       <div class="card-header">
         <span class="card-title">Accuracy</span>
+        <a href="{{ url_for('session_metric_detail', project_name=project, session_id=session_id, metric_name='acc') }}"
+           class="btn btn-sm">View details</a>
       </div>
       <div class="card-body chart-card-body">
         <svg class="chart-svg" viewBox="0 0 600 220" preserveAspectRatio="none" style="display:none;"></svg>

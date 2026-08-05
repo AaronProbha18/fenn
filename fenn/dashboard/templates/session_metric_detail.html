@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}{{ metric_name }} — {{ session_id | short_id }}… — {{ project }} — Fenn Dashboard{% endblock %}
+
+{% block breadcrumb %}
+<a href="/">Overview</a>
+<span class="breadcrumb-sep">›</span>
+<a href="/project/{{ project | urlencode }}">{{ project }}</a>
+<span class="breadcrumb-sep">›</span>
+<a href="/session/{{ project | urlencode }}/{{ session_id | urlencode }}">{{ session_id | short_id }}…</a>
+<span class="breadcrumb-sep">›</span>
+<span class="breadcrumb-current">{{ metric_name }}</span>
+{% endblock %}
+
+{% block content %}
+
+<script type="application/json" id="session-metrics-data">{{ metric_points | tojson }}</script>
+
+<div class="page-header">
+  <h1 class="page-title">{{ metric_name }}</h1>
+  <p class="page-subtitle">Session <span class="session-display-name">{{ session_id }}</span></p>
+</div>
+
+<div class="card chart-card" data-metric="{{ metric_name }}" data-color="--accent">
+  <div class="card-header">
+    <span class="card-title">{{ metric_name }}</span>
+  </div>
+  <div class="card-body chart-card-body">
+    <svg class="chart-svg" viewBox="0 0 900 400" preserveAspectRatio="none" style="display:none;"></svg>
+    <div class="empty chart-empty">
+      <div class="empty-title">No data</div>
+      <div class="empty-desc">No {{ metric_name }} metrics were recorded for this session.</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
