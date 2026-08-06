@@ -6,6 +6,7 @@ SUPPORTED_EXTENSIONS = {
     ".txt",
     ".md",
     ".pdf",
+    ".docx",
     ".json",
     ".py",
     ".js",
@@ -95,6 +96,8 @@ def _read_file(path):
     try:
         if path.suffix == ".pdf":
             return _read_pdf(path)
+        if path.suffix == ".docx":
+            return _read_docx(path)
         return path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError, ValueError, RuntimeError) as e:
         logger.error(f"[cofone] read error {path.name}: {e}")
@@ -121,6 +124,33 @@ def _read_pdf(path):
         raise ImportError(
             "[cofone] pypdf not installed.\n"
             'Run: pip install "cofone[pdf]"  or  pip install pypdf'
+        )
+
+
+def _read_docx(path):
+    """
+    Extract text from a Word (.docx) file using python-docx.
+    Reads both paragraphs and table cells.
+    Requires: pip install "cofone[docx]"  or  pip install python-docx
+    """
+    try:
+        import docx
+
+        document = docx.Document(str(path))
+        parts = [p.text for p in document.paragraphs]
+        for table in document.tables:
+            for row in table.rows:
+                parts.append("\t".join(cell.text for cell in row.cells))
+        text = "\n".join(parts).strip()
+        if not text:
+            logger.warning(
+                f"[cofone] warning: DOCX '{path.name}' returned no text (empty document)"
+            )
+        return text or None
+    except ImportError:
+        raise ImportError(
+            "[cofone] python-docx not installed.\n"
+            'Run: pip install "cofone[docx]"  or  pip install python-docx'
         )
 
 
