@@ -1095,3 +1095,31 @@ mark, .log-msg .hl, .log-msg .highlight {
   font-size: 12px;
   color: var(--text-mute);
 }
+
+/* ── Chart axis labels & tooltip ──────────────────────────────────── */
+.chart-axis-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--text-fade);
+}
+
+.chart-tooltip {
+  position: absolute;
+  transform: translate(-50%, -130%);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+  box-shadow: 0 4px 12px rgba(0,0,0,.4);
+}
+
+/* ── Metric detail page ────────────────────────────────────────────── */
+.chart-card-detail .chart-svg {
+  height: 400px;
+}

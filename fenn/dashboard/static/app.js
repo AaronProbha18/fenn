@@ -557,16 +557,20 @@
     });
   }
 
-  // Renders a simple SVG line chart (axis baseline + polyline) into svgEl.
-  // `points` is an array of {step, value} objects; `colorVar` is a CSS
-  // custom property name (e.g. "--accent") to stroke the line with.
-  function renderLineChart(svgEl, points, colorVar) {
+  // Renders a simple SVG line chart (axis + tick labels + polyline) into
+  // svgEl, and (re)binds hover-tooltip interaction. `points` is an array
+  // of {step, value} objects; `colorVar` is a CSS custom property name
+  // (e.g. "--accent") to stroke the line with. `options.animate` draws
+  // the polyline in via a stroke-dashoffset transition instead of
+  // appearing immediately — intended for the metric detail page only.
+  function renderLineChart(svgEl, points, colorVar, options) {
     if (!svgEl || !points || points.length === 0) return;
+    options = options || {};
 
     const viewBox = svgEl.viewBox && svgEl.viewBox.baseVal;
     const width = viewBox && viewBox.width ? viewBox.width : 600;
     const height = viewBox && viewBox.height ? viewBox.height : 220;
-    const padding = 24;
+    const padding = 30;
 
     const steps = points.map((p) => p.step);
     const values = points.map((p) => p.value);
@@ -584,7 +588,7 @@
 
     const ns = "http://www.w3.org/2000/svg";
 
-    // Baseline axis
+    // Baseline (step) axis
     const axis = document.createElementNS(ns, "line");
     axis.setAttribute("x1", String(padding));
     axis.setAttribute("y1", String(height - padding));
@@ -593,6 +597,39 @@
     axis.style.stroke = "var(--border)";
     axis.setAttribute("stroke-width", "1");
     svgEl.appendChild(axis);
+
+    // Left (value) axis
+    const yAxis = document.createElementNS(ns, "line");
+    yAxis.setAttribute("x1", String(padding));
+    yAxis.setAttribute("y1", String(padding));
+    yAxis.setAttribute("x2", String(padding));
+    yAxis.setAttribute("y2", String(height - padding));
+    yAxis.style.stroke = "var(--border)";
+    yAxis.setAttribute("stroke-width", "1");
+    svgEl.appendChild(yAxis);
+
+    function formatTick(n) {
+      if (Number.isInteger(n)) return String(n);
+      return n.toFixed(Math.abs(n) < 1 ? 3 : 2);
+    }
+
+    function addLabel(x, y, text, anchor) {
+      const label = document.createElementNS(ns, "text");
+      label.setAttribute("x", String(x));
+      label.setAttribute("y", String(y));
+      label.setAttribute("text-anchor", anchor || "start");
+      label.setAttribute("class", "chart-axis-label");
+      label.textContent = text;
+      svgEl.appendChild(label);
+    }
+
+    // Step (x) labels: min at left, max at right.
+    addLabel(padding, height - padding + 16, formatTick(minStep), "start");
+    addLabel(width - padding, height - padding + 16, formatTick(maxStep), "end");
+
+    // Value (y) labels: max at top, min at bottom.
+    addLabel(padding - 6, padding + 4, formatTick(maxVal), "end");
+    addLabel(padding - 6, height - padding + 4, formatTick(minVal), "end");
 
     // Line
     const polyline = document.createElementNS(ns, "polyline");
@@ -603,6 +640,84 @@
     polyline.setAttribute("stroke-width", "2");
     polyline.setAttribute("vector-effect", "non-scaling-stroke");
     svgEl.appendChild(polyline);
+
+    if (options.animate) {
+      const length = polyline.getTotalLength();
+      polyline.style.strokeDasharray = String(length);
+      polyline.style.strokeDashoffset = String(length);
+      // Force layout so the browser doesn't coalesce this with the
+      // dashoffset change below and skip the transition entirely.
+      polyline.getBoundingClientRect();
+      polyline.style.transition = "stroke-dashoffset 900ms ease-out";
+      requestAnimationFrame(() => {
+        polyline.style.strokeDashoffset = "0";
+      });
+    }
+
+    // Hover data is refreshed on every render call (auto-refresh, tab
+    // switch); the listener itself is bound once per <svg> — see below.
+    svgEl._chartPoints = points;
+    svgEl._chartXFor = xFor;
+    svgEl._chartYFor = yFor;
+    attachChartHover(svgEl);
+  }
+
+  // Binds pointermove/pointerleave once per <svg>, guarded by a dataset
+  // flag so repeated renderLineChart() calls (refresh, tab switch) don't
+  // stack duplicate listeners or tooltip elements. The handler always
+  // reads the freshest points/xFor/yFor off svgEl, so it never goes stale
+  // across re-renders even though it's bound only once.
+  function attachChartHover(svgEl) {
+    if (svgEl.dataset.hoverBound === "true") return;
+    svgEl.dataset.hoverBound = "true";
+
+    const cardBody = svgEl.closest(".chart-card-body");
+    if (!cardBody) return;
+
+    let tooltip = cardBody.querySelector(".chart-tooltip");
+    if (!tooltip) {
+      tooltip = document.createElement("div");
+      tooltip.className = "chart-tooltip";
+      tooltip.style.display = "none";
+      cardBody.appendChild(tooltip);
+    }
+
+    svgEl.addEventListener("pointermove", (e) => {
+      const points = svgEl._chartPoints;
+      const xFor = svgEl._chartXFor;
+      const yFor = svgEl._chartYFor;
+      if (!points || points.length === 0 || !xFor || !yFor) return;
+
+      const svgRect = svgEl.getBoundingClientRect();
+      const viewBox = svgEl.viewBox.baseVal;
+      const scaleX = viewBox.width / svgRect.width;
+      const svgX = (e.clientX - svgRect.left) * scaleX;
+
+      let nearest = points[0];
+      let nearestDist = Math.abs(xFor(nearest.step) - svgX);
+      for (const p of points) {
+        const dist = Math.abs(xFor(p.step) - svgX);
+        if (dist < nearestDist) {
+          nearest = p;
+          nearestDist = dist;
+        }
+      }
+
+      const cardRect = cardBody.getBoundingClientRect();
+      const scaleXBack = svgRect.width / viewBox.width;
+      const scaleYBack = svgRect.height / viewBox.height;
+      const offsetX = svgRect.left - cardRect.left;
+      const offsetY = svgRect.top - cardRect.top;
+
+      tooltip.textContent = `Step ${nearest.step} · ${nearest.value}`;
+      tooltip.style.display = "block";
+      tooltip.style.left = `${offsetX + xFor(nearest.step) * scaleXBack}px`;
+      tooltip.style.top = `${offsetY + yFor(nearest.value) * scaleYBack}px`;
+    });
+
+    svgEl.addEventListener("pointerleave", () => {
+      tooltip.style.display = "none";
+    });
   }
 
   // Reads the hidden #session-metrics-data JSON blob, groups points by
@@ -640,7 +755,9 @@
         if (emptyEl) emptyEl.style.display = "none";
         if (svgEl) {
           svgEl.style.display = "";
-          renderLineChart(svgEl, points, card.dataset.color);
+          renderLineChart(svgEl, points, card.dataset.color, {
+            animate: card.dataset.animate === "true",
+          });
         }
       } else {
         if (emptyEl) emptyEl.style.display = "";
